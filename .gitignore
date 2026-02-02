@@ -1,4 +1,10 @@
-bin/
-obj/
-node_modules/
+# .NET
+**/bin/
+**/obj/
+
+# Node
+**/node_modules/
+
+# Env files
 .env
+.env.*
