@@ -8,7 +8,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 {
     public void Configure(EntityTypeBuilder<Product> builder)
     {
-        builder.ToTable("products");
+        builder.ToTable("Products");
 
         builder.HasKey(p => p.Id);
 
@@ -20,11 +20,10 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasMaxLength(1000);
 
         builder.Property(p => p.Price)
-            .HasPrecision(12, 2)
+            .HasColumnType("numeric(18,2)")
             .IsRequired();
 
-        builder.Property(p => p.Stock)
-            .IsRequired();
+        builder.Property(p => p.Stock);
 
         builder.Property(p => p.IsActive)
             .IsRequired();

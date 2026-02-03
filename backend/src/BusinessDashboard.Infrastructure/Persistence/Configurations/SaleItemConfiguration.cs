@@ -8,7 +8,7 @@ public class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
 {
     public void Configure(EntityTypeBuilder<SaleItem> builder)
     {
-        builder.ToTable("sale_items");
+        builder.ToTable("SaleItems");
 
         builder.HasKey(si => si.Id);
 
@@ -19,10 +19,9 @@ public class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
             .IsRequired();
 
         builder.Property(si => si.UnitPrice)
-            .HasPrecision(12, 2)
+            .HasColumnType("numeric(18,2)")
             .IsRequired();
 
-        // LineTotal es calculado, no lo guardamos
         builder.Ignore(si => si.LineTotal);
     }
 }

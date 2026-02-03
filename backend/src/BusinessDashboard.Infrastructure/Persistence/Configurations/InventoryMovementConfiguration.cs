@@ -8,26 +8,23 @@ public class InventoryMovementConfiguration : IEntityTypeConfiguration<Inventory
 {
     public void Configure(EntityTypeBuilder<InventoryMovement> builder)
     {
-        builder.ToTable("inventory_movements");
+        builder.ToTable("InventoryMovements");
 
-        builder.HasKey(m => m.Id);
+        builder.HasKey(im => im.Id);
 
-        builder.Property(m => m.ProductId)
+        builder.Property(im => im.ProductId)
             .IsRequired();
 
-        builder.Property(m => m.Quantity)
+        builder.Property(im => im.Type)
             .IsRequired();
 
-        builder.Property(m => m.CreatedAt)
+        builder.Property(im => im.Reason)
             .IsRequired();
 
-        // Enums como string para legibilidad (portfolio win)
-        builder.Property(m => m.Type)
-            .HasConversion<string>()
+        builder.Property(im => im.Quantity)
             .IsRequired();
 
-        builder.Property(m => m.Reason)
-            .HasConversion<string>()
+        builder.Property(im => im.CreatedAt)
             .IsRequired();
     }
 }

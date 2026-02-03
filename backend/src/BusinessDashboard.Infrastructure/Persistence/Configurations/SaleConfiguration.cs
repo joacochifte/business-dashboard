@@ -8,7 +8,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
 {
     public void Configure(EntityTypeBuilder<Sale> builder)
     {
-        builder.ToTable("sales");
+        builder.ToTable("Sales");
 
         builder.HasKey(s => s.Id);
 
@@ -16,16 +16,16 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
             .IsRequired();
 
         builder.Property(s => s.Total)
-            .HasPrecision(12, 2)
+            .HasColumnType("numeric(18,2)")
             .IsRequired();
 
-        // Mapea la colección privada "_items"
-        builder.Metadata.FindNavigation(nameof(Sale.Items))!
-            .SetPropertyAccessMode(PropertyAccessMode.Field);
-
-        builder.HasMany<SaleItem>("_items")
+        builder.HasMany(s => s.Items)
             .WithOne()
-            .HasForeignKey("sale_id")
+            .HasForeignKey("SaleId")
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(Sale.Items))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }
