@@ -62,4 +62,12 @@ public class Product : Entity
 
         Stock = stock.Value;
     }
+    public void Update(string name, string? description, decimal price, int? stock, bool isActive)
+    {
+        SetName(name);
+        Description = description;
+        SetPrice(price);
+        SetStock(stock);
+        IsActive = isActive;
+    }
 }
