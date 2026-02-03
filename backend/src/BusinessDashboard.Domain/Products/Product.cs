@@ -37,7 +37,6 @@ public class Product : Entity
     }
 
     public void Deactivate() => IsActive = false;
-
     public void AdjustStock(int delta)
     {
         var newStock = Stock + delta;
