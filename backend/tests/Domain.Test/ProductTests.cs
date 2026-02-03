@@ -100,6 +100,13 @@ public class ProductTests
     // ---------- Stock ----------
 
     [TestMethod]
+    public void Constructor_WithNullInitialStock_ShouldSetStockToNull()
+    {
+        var product = new Product(name: "Servicio", price: 50m, initialStock: null);
+        Assert.IsNull(product.Stock);
+    }
+
+    [TestMethod]
     public void AdjustStock_WithPositiveDelta_ShouldIncreaseStock()
     {
         _product.AdjustStock(+5);
@@ -118,6 +125,14 @@ public class ProductTests
     public void AdjustStock_ResultingNegativeStock_ShouldThrowInvalidOperationException()
     {
         _product.AdjustStock(-999);
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(InvalidOperationException))]
+    public void AdjustStock_WhenStockNotTracked_ShouldThrowInvalidOperationException()
+    {
+        var product = new Product(name: "Servicio", price: 50m, initialStock: null);
+        product.AdjustStock(1);
     }
 
     // ---------- Active ----------

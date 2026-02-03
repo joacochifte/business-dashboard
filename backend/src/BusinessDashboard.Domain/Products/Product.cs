@@ -7,16 +7,16 @@ public class Product : Entity
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public decimal Price { get; private set; }
-    public int Stock { get; private set; }
+    public int? Stock { get; private set; }
     public bool IsActive { get; private set; } = true;
 
     private Product() { }
 
-    public Product(string name, decimal price, int initialStock = 0, string? description = null)
+    public Product(string name, decimal price, int? initialStock = 0, string? description = null)
     {
         SetName(name);
         SetPrice(price);
-        AdjustStock(initialStock);
+        SetStock(initialStock);
         Description = description;
     }
 
@@ -39,10 +39,27 @@ public class Product : Entity
     public void Deactivate() => IsActive = false;
     public void AdjustStock(int delta)
     {
-        var newStock = Stock + delta;
+        if (Stock is null)
+            throw new InvalidOperationException("Stock is not tracked for this product.");
+
+        var newStock = Stock.Value + delta;
         if (newStock < 0)
             throw new InvalidOperationException("Stock cannot be negative.");
 
         Stock = newStock;
+    }
+
+    private void SetStock(int? stock)
+    {
+        if (stock is null)
+        {
+            Stock = null;
+            return;
+        }
+
+        if (stock < 0)
+            throw new ArgumentOutOfRangeException(nameof(stock), "Stock cannot be negative.");
+
+        Stock = stock.Value;
     }
 }
