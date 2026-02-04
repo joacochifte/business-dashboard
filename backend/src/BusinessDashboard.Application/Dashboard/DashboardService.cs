@@ -1,0 +1,143 @@
+using BusinessDashboard.Infrastructure.Persistence;
+using BusinessDashboard.Domain.Sales;
+using BusinessDashboard.Infrastructure.Dashboard;
+using Microsoft.EntityFrameworkCore;
+
+namespace BusinessDashboard.Application.Dashboard;
+
+public sealed class DashboardService : IDashboardService
+{
+    private readonly AppDbContext _db;
+
+    public DashboardService(AppDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<DashboardSummaryDto> GetSummaryAsync(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    {
+        var query = ApplySalesFilter(_db.Sales.AsNoTracking(), from, to);
+
+        var salesCount = await query.CountAsync(ct);
+        var revenueTotal = await query.SumAsync(s => (decimal?)s.Total, ct) ?? 0m;
+        var avgTicket = salesCount == 0 ? 0m : revenueTotal / salesCount;
+
+        return new DashboardSummaryDto
+        {
+            RevenueTotal = revenueTotal,
+            SalesCount = salesCount,
+            AvgTicket = avgTicket
+        };
+    }
+
+    public async Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    {
+        var normalized = NormalizeGroupBy(groupBy);
+        var sales = await ApplySalesFilter(_db.Sales.AsNoTracking(), from, to)
+            .Select(s => new { s.CreatedAt, s.Total })
+            .ToListAsync(ct);
+
+        var points = sales
+            .GroupBy(s => GetPeriodStart(s.CreatedAt, normalized))
+            .Select(g => new SalesByPeriodPointDto
+            {
+                PeriodStart = g.Key,
+                SalesCount = g.Count(),
+                Revenue = g.Sum(x => x.Total)
+            })
+            .OrderBy(p => p.PeriodStart)
+            .ToList();
+
+        return new SalesByPeriodDto
+        {
+            GroupBy = normalized,
+            Points = points
+        };
+    }
+
+    public async Task<IReadOnlyList<TopProductDto>> GetTopProductsAsync(int limit = 10, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    {
+        if (limit < 1) limit = 1;
+        if (limit > 50) limit = 50;
+
+        var sales = await ApplySalesFilter(_db.Sales.AsNoTracking(), from, to)
+            .Include(s => s.Items)
+            .ToListAsync(ct);
+
+        var grouped = sales
+            .SelectMany(s => s.Items)
+            .GroupBy(i => i.ProductId)
+            .Select(g => new
+            {
+                ProductId = g.Key,
+                Quantity = g.Sum(x => x.Quantity),
+                Revenue = g.Sum(x => x.Quantity * x.UnitPrice)
+            })
+            .OrderByDescending(x => x.Revenue)
+            .ThenByDescending(x => x.Quantity)
+            .Take(limit)
+            .ToList();
+
+        var ids = grouped.Select(x => x.ProductId).ToList();
+        var names = await _db.Products
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.Id))
+            .Select(p => new { p.Id, p.Name })
+            .ToListAsync(ct);
+
+        var nameMap = names.ToDictionary(x => x.Id, x => x.Name);
+
+        return grouped.Select(x => new TopProductDto
+        {
+            ProductId = x.ProductId,
+            ProductName = nameMap.GetValueOrDefault(x.ProductId, string.Empty),
+            Quantity = x.Quantity,
+            Revenue = x.Revenue
+        }).ToList();
+    }
+
+    private static IQueryable<Sale> ApplySalesFilter(IQueryable<Sale> query, DateTime? from, DateTime? to)
+    {
+        if (from is not null)
+            query = query.Where(s => s.CreatedAt >= from.Value);
+
+        if (to is not null)
+            query = query.Where(s => s.CreatedAt <= to.Value);
+
+        return query;
+    }
+
+    private static string NormalizeGroupBy(string groupBy)
+    {
+        if (string.IsNullOrWhiteSpace(groupBy))
+            return "day";
+
+        return groupBy.Trim().ToLowerInvariant() switch
+        {
+            "day" => "day",
+            "week" => "week",
+            "month" => "month",
+            _ => throw new ArgumentException("groupBy must be 'day', 'week', or 'month'.", nameof(groupBy))
+        };
+    }
+
+    private static DateTime GetPeriodStart(DateTime dt, string groupBy)
+    {
+        dt = dt.ToUniversalTime();
+
+        return groupBy switch
+        {
+            "day" => new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, DateTimeKind.Utc),
+            "month" => new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+            "week" => StartOfWeekUtc(dt, DayOfWeek.Monday),
+            _ => throw new ArgumentOutOfRangeException(nameof(groupBy))
+        };
+    }
+
+    private static DateTime StartOfWeekUtc(DateTime dt, DayOfWeek startOfWeek)
+    {
+        var date = DateTime.SpecifyKind(dt.Date, DateTimeKind.Utc);
+        var diff = (7 + (date.DayOfWeek - startOfWeek)) % 7;
+        return date.AddDays(-diff);
+    }
+}
