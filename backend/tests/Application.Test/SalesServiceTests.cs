@@ -25,10 +25,10 @@ public class SalesServiceTests
     {
         var request = new SaleCreationDto
         {
-            Products = new List<ProductSummaryDto>
+            Items = new List<SaleItemDto>
             {
-                new ProductSummaryDto { Id = Guid.NewGuid(), Name = "A" },
-                new ProductSummaryDto { Id = Guid.NewGuid(), Name = "B" }
+                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m },
+                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
             },
             Total = 200m
         };
@@ -55,7 +55,7 @@ public class SalesServiceTests
     {
         var request = new SaleCreationDto
         {
-            Products = new List<ProductSummaryDto>(),
+            Items = new List<SaleItemDto>(),
             Total = 100m
         };
 
@@ -68,9 +68,9 @@ public class SalesServiceTests
     {
         var request = new SaleCreationDto
         {
-            Products = new List<ProductSummaryDto>
+            Items = new List<SaleItemDto>
             {
-                new ProductSummaryDto { Id = Guid.NewGuid(), Name = "A" }
+                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
             },
             Total = 0m
         };
@@ -132,9 +132,9 @@ public class SalesServiceTests
     {
         var request = new SaleUpdateDto
         {
-            Products = new List<ProductSummaryDto>
+            Items = new List<SaleItemDto>
             {
-                new ProductSummaryDto { Id = Guid.NewGuid(), Name = "A" }
+                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
             },
             Total = 50m
         };

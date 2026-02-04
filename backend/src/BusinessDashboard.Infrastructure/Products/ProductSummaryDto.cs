@@ -1,4 +1,4 @@
-namespace BusinessDashboard.Application.Products;
+namespace BusinessDashboard.Infrastructure.Products;
 
 public class ProductSummaryDto
 {

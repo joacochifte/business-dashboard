@@ -22,6 +22,7 @@ public sealed class SaleRepository : ISaleRepository
     public async Task<IEnumerable<Sale>> GetAllAsync()
     {
         return await _db.Sales
+            .Include(s => s.Items)
             .AsNoTracking()
             .OrderBy(s => s.CreatedAt)
             .ToListAsync();
@@ -48,7 +49,9 @@ public sealed class SaleRepository : ISaleRepository
 
     private async Task<Sale> GetByIdInternalAsync(Guid saleId, CancellationToken ct = default)
     {
-        var sale = await _db.Sales.FirstOrDefaultAsync(s => s.Id == saleId, ct);
+        var sale = await _db.Sales
+            .Include(s => s.Items)
+            .FirstOrDefaultAsync(s => s.Id == saleId, ct);
         if (sale is null)
             throw new InvalidOperationException("Sale not found.");
         return sale;

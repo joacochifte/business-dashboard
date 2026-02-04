@@ -19,13 +19,12 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
             .HasColumnType("numeric(18,2)")
             .IsRequired();
 
-        builder.HasMany(s => s.Items)
+        builder.HasMany<SaleItem>("Items")
             .WithOne()
             .HasForeignKey("SaleId")
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Metadata
-            .FindNavigation(nameof(Sale.Items))!
-            .SetPropertyAccessMode(PropertyAccessMode.Field);
+        builder.Navigation("_items")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

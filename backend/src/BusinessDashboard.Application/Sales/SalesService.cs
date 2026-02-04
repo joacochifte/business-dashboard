@@ -1,7 +1,8 @@
 using BusinessDashboard.Infrastructure.Sales;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Domain.Sales;
-using BusinessDashboard.Application.Products;
+using BusinessDashboard.Application;
+using BusinessDashboard.Infrastructure.Products;
 
 namespace BusinessDashboard.Application.Sales;
 
@@ -18,13 +19,13 @@ public sealed class SalesService : ISalesService
 
     public async Task<Guid> CreateSaleAsync(SaleCreationDto request, CancellationToken ct = default)
     {
-        if (request.Products is null || !request.Products.Any())
+        if (request.Items is null || !request.Items.Any())
             throw new InvalidOperationException("A sale must have at least one product.");
 
         if (request.Total <= 0)
             throw new ArgumentOutOfRangeException(nameof(request.Total), "Total must be greater than 0.");
 
-        var items = CreateItemsFromRequest(request.Products, request.Total);
+        var items = CreateItemsFromRequest(request.Items, request.Total);
         var sale = new Sale(items);
 
         await _repo.AddAsync(sale, ct);
@@ -53,17 +54,17 @@ public sealed class SalesService : ISalesService
         throw new InvalidOperationException("Sales cannot be updated.");
     }
 
-    private static IEnumerable<SaleItem> CreateItemsFromRequest(IEnumerable<ProductSummaryDto> products, decimal total)
+    private static IEnumerable<SaleItem> CreateItemsFromRequest(IEnumerable<SaleItemDto> items, decimal total)
     {
-        var items = products.ToList();
-        if (items.Count == 0)
+        var itemList = items.ToList();
+        if (itemList.Count == 0)
             throw new InvalidOperationException("A sale must have at least one product.");
 
-        var unitPrice = total / items.Count;
+        var unitPrice = total / itemList.Count;
         if (unitPrice <= 0)
             throw new ArgumentOutOfRangeException(nameof(total), "Total must be greater than 0.");
 
-        return items.Select(p => new SaleItem(p.Id, quantity: 1, unitPrice: unitPrice));
+        return itemList.Select(p => new SaleItem(p.ProductId, quantity: 1, unitPrice: unitPrice));
     }
 
     private static SaleDto MapToDto(Sale sale)
@@ -71,10 +72,12 @@ public sealed class SalesService : ISalesService
         return new SaleDto
         {
             ProductId = sale.Items.First().ProductId,
-            Products = sale.Items.Select(i => new ProductSummaryDto
+            Items = sale.Items.Select(i => new SaleItemDto
             {
-                Id = i.ProductId,
-                Name = string.Empty
+                ProductId = i.ProductId,
+                Quantity =  i.Quantity,
+                UnitPrice = i.UnitPrice
+                
             }),
             Total = sale.Total,
             CreatedAt = sale.CreatedAt

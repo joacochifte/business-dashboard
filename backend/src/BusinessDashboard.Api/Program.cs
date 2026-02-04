@@ -1,9 +1,7 @@
 using BusinessDashboard.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using BusinessDashboard.Application.Products;
-using BusinessDashboard.Infrastructure.Repositories.Interfaces;
-using BusinessDashboard.Infrastructure.Repositories;
-using BusinessDashboard.Infrastructure.Products;
+using BusinessDashboard.Api.Extensions;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,8 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddBusinessDashboardServices();
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
