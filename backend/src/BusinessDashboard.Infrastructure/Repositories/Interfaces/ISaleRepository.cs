@@ -1,4 +1,5 @@
-namespace BusinessDashboard.Application.Products;
+namespace BusinessDashboard.Infrastructure.Repositories.Interfaces;
+
 using BusinessDashboard.Domain.Sales;
 
 public interface ISaleRepository

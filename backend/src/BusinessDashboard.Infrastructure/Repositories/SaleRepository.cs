@@ -1,4 +1,3 @@
-using BusinessDashboard.Application.Products;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Infrastructure.Persistence;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
