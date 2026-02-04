@@ -16,7 +16,7 @@ public class InventoryMovement : Entity
         Guid productId,
         InventoryMovementType type,
         InventoryMovementReason reason,
-        int quantity)
+        int quantity, DateTime createdAt)
     {
         if (productId == Guid.Empty)
             throw new ArgumentException("ProductId is required.");
@@ -28,5 +28,6 @@ public class InventoryMovement : Entity
         Type = type;
         Reason = reason;
         Quantity = quantity;
+        CreatedAt = createdAt;
     }
 }

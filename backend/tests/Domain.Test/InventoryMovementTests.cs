@@ -13,7 +13,8 @@ public class InventoryMovementTests
             Guid.Empty,
             InventoryMovementType.In,
             InventoryMovementReason.Purchase,
-            quantity: 10);
+            quantity: 10,
+            createdAt: DateTime.UtcNow);
     }
 
     [TestMethod]
@@ -24,7 +25,8 @@ public class InventoryMovementTests
             Guid.NewGuid(),
             InventoryMovementType.In,
             InventoryMovementReason.Purchase,
-            quantity: 0);
+            quantity: 0,
+            createdAt: DateTime.UtcNow);
     }
 
     [TestMethod]
@@ -34,8 +36,8 @@ public class InventoryMovementTests
             Guid.NewGuid(),
             InventoryMovementType.Out,
             InventoryMovementReason.Sale,
-            quantity: 3);
-
+            quantity: 3,
+            createdAt: DateTime.UtcNow);
         Assert.IsNotNull(movement);
         Assert.AreEqual(3, movement.Quantity);
         Assert.AreEqual(InventoryMovementType.Out, movement.Type);

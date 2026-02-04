@@ -1,3 +1,4 @@
+using BusinessDashboard.Domain.Inventory;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Infrastructure.Persistence;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
@@ -32,6 +33,25 @@ public sealed class SaleRepository : ISaleRepository
     {
         _db.Sales.Add(sale);
         await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task AddAsync(Sale sale, IReadOnlyList<InventoryMovement> movements, CancellationToken ct = default)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            _db.Sales.Add(sale);
+            if (movements.Count > 0)
+                _db.InventoryMovements.AddRange(movements);
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
     }
 
     public async Task UpdateAsync(Sale sale, CancellationToken ct = default)

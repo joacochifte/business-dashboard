@@ -29,7 +29,8 @@ public class InventoryService : IInventoryService
             productId: productId,
             type: delta > 0 ? InventoryMovementType.In : InventoryMovementType.Out,
             reason: InventoryMovementReason.Adjustment,
-            quantity: Math.Abs(delta)
+            quantity: Math.Abs(delta),
+            createdAt: DateTime.UtcNow
         );
 
         await _products.UpdateAsync(product, ct);

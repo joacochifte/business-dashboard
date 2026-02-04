@@ -23,8 +23,8 @@ public class SalesControllerTests
     {
         var expected = new List<SaleDto>
         {
-            new() { ProductId = Guid.NewGuid(), Total = 100m, CreatedAt = DateTime.UtcNow },
-            new() { ProductId = Guid.NewGuid(), Total = 200m, CreatedAt = DateTime.UtcNow }
+            new() { Id = Guid.NewGuid(), Total = 100m, CreatedAt = DateTime.UtcNow },
+            new() { Id = Guid.NewGuid(), Total = 200m, CreatedAt = DateTime.UtcNow }
         };
         _service.GetAllSalesResult = expected;
 
@@ -41,7 +41,7 @@ public class SalesControllerTests
     public async Task GetSaleById_ShouldReturnOkWithSale()
     {
         var id = Guid.NewGuid();
-        var expected = new SaleDto { ProductId = id, Total = 150m, CreatedAt = DateTime.UtcNow };
+        var expected = new SaleDto { Id = id, Total = 150m, CreatedAt = DateTime.UtcNow };
         _service.GetByIdResult = expected;
 
         var result = await _controller.GetSaleById(id);
@@ -50,7 +50,7 @@ public class SalesControllerTests
         Assert.IsNotNull(ok);
         var value = ok.Value as SaleDto;
         Assert.IsNotNull(value);
-        Assert.AreEqual(id, value.ProductId);
+        Assert.AreEqual(id, value.Id);
     }
 
     [TestMethod]

@@ -1,5 +1,7 @@
 using BusinessDashboard.Application.Sales;
+using BusinessDashboard.Domain.Inventory;
 using BusinessDashboard.Domain.Sales;
+using BusinessDashboard.Domain.Products;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Infrastructure.Sales;
 using Moq;
@@ -10,32 +12,39 @@ namespace Application.Test.Sales;
 public class SalesServiceTests
 {
     private Mock<ISaleRepository> _repo = null!;
+    private Mock<IProductRepository> _products = null!;
     private SalesService _service = null!;
 
     [TestInitialize]
     public void SetUp()
     {
         _repo = new Mock<ISaleRepository>(MockBehavior.Strict);
-        _service = new SalesService(_repo.Object);
+        _products = new Mock<IProductRepository>(MockBehavior.Strict);
+        _service = new SalesService(_repo.Object, _products.Object);
     }
 
     [TestMethod]
     public async Task CreateSaleAsync_ShouldCreateAndReturnId()
     {
+        var p1 = Guid.NewGuid();
+        var p2 = Guid.NewGuid();
         var request = new SaleCreationDto
         {
             Items = new List<SaleItemDto>
             {
-                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m },
-                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
+                new SaleItemDto { ProductId = p1, Quantity = 1, UnitPrice = 100m },
+                new SaleItemDto { ProductId = p2, Quantity = 1, UnitPrice = 100m }
             },
             Total = 200m
         };
 
         Sale? captured = null;
+        _products.Setup(r => r.GetByIdAsync(p1)).ReturnsAsync(new Product("P1", 1m, initialStock: 10));
+        _products.Setup(r => r.GetByIdAsync(p2)).ReturnsAsync(new Product("P2", 1m, initialStock: 10));
+
         _repo
-            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
-            .Callback<Sale, CancellationToken>((s, _) => captured = s)
+            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, IReadOnlyList<InventoryMovement>, CancellationToken>((s, _, _) => captured = s)
             .Returns(Task.CompletedTask);
 
         var id = await _service.CreateSaleAsync(request);
@@ -45,7 +54,7 @@ public class SalesServiceTests
         Assert.AreEqual(200m, captured.Total);
         Assert.AreEqual(captured.Id, id);
 
-        _repo.Verify(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -64,37 +73,42 @@ public class SalesServiceTests
     [TestMethod]
     public async Task CreateSaleAsync_WithZeroTotal_ShouldCreateSale()
     {
+        var pid = Guid.NewGuid();
         var request = new SaleCreationDto
         {
             Items = new List<SaleItemDto>
             {
-                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
+                new SaleItemDto { ProductId = pid, Quantity = 1, UnitPrice = 100m }
             },
             Total = 0m
         };
 
-        _repo
-            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+        _products.Setup(r => r.GetByIdAsync(pid)).ReturnsAsync(new Product("P1", 1m, initialStock: 10));
+
+        _repo.Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var id = await _service.CreateSaleAsync(request);
 
         Assert.AreNotEqual(Guid.Empty, id);
-        _repo.Verify(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
     [ExpectedException(typeof(InvalidOperationException))]
     public async Task CreateSaleAsync_WithTotalMismatch_ShouldThrowInvalidOperationException()
     {
+        var pid = Guid.NewGuid();
         var request = new SaleCreationDto
         {
             Items = new List<SaleItemDto>
             {
-                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
+                new SaleItemDto { ProductId = pid, Quantity = 1, UnitPrice = 100m }
             },
             Total = 999m
         };
+
+        _products.Setup(r => r.GetByIdAsync(pid)).ReturnsAsync(new Product("P1", 1m, initialStock: 10));
 
         await _service.CreateSaleAsync(request);
     }
@@ -131,7 +145,7 @@ public class SalesServiceTests
 
         Assert.AreEqual(sale.Total, dto.Total);
         Assert.AreEqual(sale.CreatedAt, dto.CreatedAt);
-        Assert.AreEqual(sale.Items.First().ProductId, dto.ProductId);
+        Assert.AreEqual(sale.Id, dto.Id);
 
         _repo.Verify(r => r.GetByIdAsync(saleId), Times.Once);
     }

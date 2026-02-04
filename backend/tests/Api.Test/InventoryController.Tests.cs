@@ -38,8 +38,8 @@ public class InventoryControllerTests
     public async Task GetMovements_WithNoFilters_ShouldReturnOkWithPage()
     {
         var productId = Guid.NewGuid();
-        var m1 = new InventoryMovement(productId, InventoryMovementType.In, InventoryMovementReason.Purchase, 10);
-        var m2 = new InventoryMovement(productId, InventoryMovementType.Out, InventoryMovementReason.Sale, 2);
+        var m1 = new InventoryMovement(productId, InventoryMovementType.In, InventoryMovementReason.Purchase, 10, DateTime.UtcNow);
+        var m2 = new InventoryMovement(productId, InventoryMovementType.Out, InventoryMovementReason.Sale, 2, DateTime.UtcNow);
 
         _repo.PageItems = new List<InventoryMovement> { m1, m2 };
         _repo.PageTotal = 2;
