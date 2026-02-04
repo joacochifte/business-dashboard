@@ -7,6 +7,7 @@ type FormState = {
   name: string;
   description: string;
   price: string;
+  trackStock: boolean;
   initialStock: string;
 };
 
@@ -17,6 +18,7 @@ export default function NewProductForm() {
     name: "",
     description: "",
     price: "",
+    trackStock: true,
     initialStock: "0",
   });
 
@@ -31,8 +33,10 @@ export default function NewProductForm() {
     const price = Number(form.price);
     if (!Number.isFinite(price) || price <= 0) return "Price must be greater than 0.";
 
-    const stock = Number(form.initialStock);
-    if (!Number.isInteger(stock) || stock < 0) return "Initial stock must be a non-negative integer.";
+    if (form.trackStock) {
+      const stock = Number(form.initialStock);
+      if (!Number.isInteger(stock) || stock < 0) return "Initial stock must be a non-negative integer.";
+    }
 
     return null;
   }, [form]);
@@ -57,7 +61,7 @@ export default function NewProductForm() {
         name: form.name.trim(),
         description: form.description.trim() ? form.description.trim() : null,
         price: Number(form.price),
-        initialStock: Number(form.initialStock),
+        initialStock: form.trackStock ? Number(form.initialStock) : null,
       };
 
       const res = await fetch(`${apiBaseUrl}/products`, {
@@ -96,7 +100,7 @@ export default function NewProductForm() {
             value={form.name}
             onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
             className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
-            placeholder="Coca Cola 600ml"
+            placeholder="SAAMA Therapy"
             required
           />
         </label>
@@ -127,13 +131,27 @@ export default function NewProductForm() {
           <input
             value={form.initialStock}
             onChange={(e) => setForm((s) => ({ ...s, initialStock: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
             placeholder="0"
             inputMode="numeric"
+            disabled={!form.trackStock}
           />
-          <span className="text-xs text-neutral-600">
-            If the product does not track stock, we&apos;ll handle that later (needs backend DTO change).
-          </span>
+          <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={form.trackStock}
+            onChange={(e) =>
+              setForm((s) => ({
+                ...s,
+                trackStock: e.target.checked,
+                initialStock: e.target.checked ? s.initialStock : "0",
+              }))
+            }
+            className="h-4 w-4 rounded border-neutral-300"
+          />
+          <span className="text-sm text-neutral-800">Track stock</span>
+        </label>
+          <span className="text-xs text-neutral-600">Uncheck for services or products without inventory.</span>
         </label>
       </div>
 
@@ -152,4 +170,3 @@ export default function NewProductForm() {
     </form>
   );
 }
-
