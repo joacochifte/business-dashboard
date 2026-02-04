@@ -1,5 +1,4 @@
 using BusinessDashboard.Application.Sales;
-using BusinessDashboard.Application;
 using BusinessDashboard.Infrastructure.Products;
 using BusinessDashboard.Infrastructure.Sales;
 using Microsoft.AspNetCore.Mvc;
