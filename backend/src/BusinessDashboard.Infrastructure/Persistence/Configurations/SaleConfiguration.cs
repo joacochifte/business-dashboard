@@ -19,6 +19,12 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
             .HasColumnType("numeric(18,2)")
             .IsRequired();
 
+        builder.Property(s => s.CustomerName)
+            .HasMaxLength(200);
+
+        builder.Property(s => s.PaymentMethod)
+            .HasMaxLength(50);
+
         builder.HasMany(s => s.Items)
             .WithOne()
             .HasForeignKey("SaleId")

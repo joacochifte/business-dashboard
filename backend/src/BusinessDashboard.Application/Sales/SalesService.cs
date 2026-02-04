@@ -1,12 +1,8 @@
 using BusinessDashboard.Infrastructure.Sales;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Domain.Sales;
-using BusinessDashboard.Application;
-using BusinessDashboard.Infrastructure.Products;
 
 namespace BusinessDashboard.Application.Sales;
-
-
 
 public sealed class SalesService : ISalesService
 {
@@ -19,14 +15,11 @@ public sealed class SalesService : ISalesService
 
     public async Task<Guid> CreateSaleAsync(SaleCreationDto request, CancellationToken ct = default)
     {
-        if (request.Items is null || !request.Items.Any())
-            throw new InvalidOperationException("A sale must have at least one product.");
+        var items = CreateItemsFromRequest(request.Items);
+        var sale = new Sale(items, request.CustomerName, request.PaymentMethod);
 
-        if (request.Total <= 0)
-            throw new ArgumentOutOfRangeException(nameof(request.Total), "Total must be greater than 0.");
-
-        var items = CreateItemsFromRequest(request.Items, request.Total);
-        var sale = new Sale(items);
+        if (request.Total > 0 && request.Total != sale.Total)
+            throw new InvalidOperationException("Total mismatch.");
 
         await _repo.AddAsync(sale, ct);
         return sale.Id;
@@ -49,22 +42,27 @@ public sealed class SalesService : ISalesService
         return MapToDto(sale);
     }
 
-    public Task UpdateSaleAsync(Guid saleId, SaleUpdateDto request, CancellationToken ct = default)
+    public async Task UpdateSaleAsync(Guid saleId, SaleUpdateDto request, CancellationToken ct = default)
     {
-        throw new InvalidOperationException("Sales cannot be updated.");
+        var sale = await _repo.GetByIdAsync(saleId);
+
+        sale.SetCustomerName(request.CustomerName);
+        sale.SetPaymentMethod(request.PaymentMethod);
+
+        await _repo.UpdateAsync(sale, ct);
     }
 
-    private static IEnumerable<SaleItem> CreateItemsFromRequest(IEnumerable<SaleItemDto> items, decimal total)
+    private static IEnumerable<SaleItem> CreateItemsFromRequest(IEnumerable<SaleItemDto> items)
     {
-        var itemList = items.ToList();
-        if (itemList.Count == 0)
-            throw new InvalidOperationException("A sale must have at least one product.");
+        if (items is null || !items.Any())
+            throw new InvalidOperationException("A sale must have at least one item.");
 
-        var unitPrice = total / itemList.Count;
-        if (unitPrice <= 0)
-            throw new ArgumentOutOfRangeException(nameof(total), "Total must be greater than 0.");
-
-        return itemList.Select(p => new SaleItem(p.ProductId, quantity: 1, unitPrice: unitPrice));
+        var saleItems = items.Select(i => new SaleItem(
+            productId: i.ProductId,
+            quantity: i.Quantity,
+            unitPrice: i.UnitPrice
+        ));
+        return saleItems;
     }
 
     private static SaleDto MapToDto(Sale sale)
@@ -75,10 +73,12 @@ public sealed class SalesService : ISalesService
             Items = sale.Items.Select(i => new SaleItemDto
             {
                 ProductId = i.ProductId,
-                Quantity =  i.Quantity,
+                Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice
-                
-            }),
+
+            }).ToList(),
+            CustomerName = sale.CustomerName,
+            PaymentMethod = sale.PaymentMethod,
             Total = sale.Total,
             CreatedAt = sale.CreatedAt
         };

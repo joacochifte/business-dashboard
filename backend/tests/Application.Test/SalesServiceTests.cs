@@ -1,4 +1,3 @@
-using BusinessDashboard.Application.Products;
 using BusinessDashboard.Application.Sales;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
@@ -63,8 +62,7 @@ public class SalesServiceTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentOutOfRangeException))]
-    public async Task CreateSaleAsync_WithZeroTotal_ShouldThrowArgumentOutOfRangeException()
+    public async Task CreateSaleAsync_WithZeroTotal_ShouldCreateSale()
     {
         var request = new SaleCreationDto
         {
@@ -73,6 +71,29 @@ public class SalesServiceTests
                 new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
             },
             Total = 0m
+        };
+
+        _repo
+            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var id = await _service.CreateSaleAsync(request);
+
+        Assert.AreNotEqual(Guid.Empty, id);
+        _repo.Verify(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(InvalidOperationException))]
+    public async Task CreateSaleAsync_WithTotalMismatch_ShouldThrowInvalidOperationException()
+    {
+        var request = new SaleCreationDto
+        {
+            Items = new List<SaleItemDto>
+            {
+                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
+            },
+            Total = 999m
         };
 
         await _service.CreateSaleAsync(request);
@@ -127,18 +148,24 @@ public class SalesServiceTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(InvalidOperationException))]
-    public async Task UpdateSaleAsync_ShouldThrowInvalidOperationException()
+    public async Task UpdateSaleAsync_ShouldUpdateAndPersist()
     {
+        var saleId = Guid.NewGuid();
+        var sale = new Sale(new[] { new SaleItem(Guid.NewGuid(), 1, 50m) });
         var request = new SaleUpdateDto
         {
-            Items = new List<SaleItemDto>
-            {
-                new SaleItemDto { ProductId = Guid.NewGuid(), Quantity = 1, UnitPrice = 100m }
-            },
-            Total = 50m
+            CustomerName = "Juan",
+            PaymentMethod = "Cash"
         };
 
-        await _service.UpdateSaleAsync(Guid.NewGuid(), request);
+        _repo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
+        _repo.Setup(r => r.UpdateAsync(sale, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        await _service.UpdateSaleAsync(saleId, request);
+
+        Assert.AreEqual("Juan", sale.CustomerName);
+        Assert.AreEqual("Cash", sale.PaymentMethod);
+        _repo.Verify(r => r.GetByIdAsync(saleId), Times.Once);
+        _repo.Verify(r => r.UpdateAsync(sale, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
