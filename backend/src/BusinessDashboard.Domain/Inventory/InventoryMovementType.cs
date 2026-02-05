@@ -4,5 +4,4 @@ public enum InventoryMovementType
 {
     In,
     Out,
-    Adjust
 }

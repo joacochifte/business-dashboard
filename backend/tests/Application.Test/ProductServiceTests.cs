@@ -1,5 +1,6 @@
 using BusinessDashboard.Application.Products;
 using BusinessDashboard.Domain.Products;
+using BusinessDashboard.Domain.Inventory;
 using BusinessDashboard.Infrastructure.Products;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using Moq;
@@ -31,9 +32,14 @@ public class ProductServiceTests
         };
 
         Product? captured = null;
+        IReadOnlyList<InventoryMovement>? capturedMovements = null;
         _repo
-            .Setup(r => r.AddAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
-            .Callback<Product, CancellationToken>((p, _) => captured = p)
+            .Setup(r => r.AddAsync(It.IsAny<Product>(), It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<Product, IReadOnlyList<InventoryMovement>, CancellationToken>((p, m, _) =>
+            {
+                captured = p;
+                capturedMovements = m;
+            })
             .Returns(Task.CompletedTask);
 
         var id = await _service.CreateProductAsync(request);
@@ -45,7 +51,14 @@ public class ProductServiceTests
         Assert.AreEqual(request.Description, captured.Description);
         Assert.AreEqual(captured.Id, id);
 
-        _repo.Verify(r => r.AddAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.IsNotNull(capturedMovements);
+        Assert.AreEqual(1, capturedMovements.Count);
+        Assert.AreEqual(captured.Id, capturedMovements[0].ProductId);
+        Assert.AreEqual(InventoryMovementType.In, capturedMovements[0].Type);
+        Assert.AreEqual(InventoryMovementReason.Adjustment, capturedMovements[0].Reason);
+        Assert.AreEqual(request.InitialStock, capturedMovements[0].Quantity);
+
+        _repo.Verify(r => r.AddAsync(It.IsAny<Product>(), It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
@@ -103,7 +116,11 @@ public class ProductServiceTests
         };
 
         _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(product);
-        _repo.Setup(r => r.UpdateAsync(product, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        IReadOnlyList<InventoryMovement>? capturedMovements = null;
+        _repo
+            .Setup(r => r.UpdateAsync(product, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<Product, IReadOnlyList<InventoryMovement>, CancellationToken>((_, m, _) => capturedMovements = m)
+            .Returns(Task.CompletedTask);
 
         await _service.UpdateProductAsync(id, request);
 
@@ -113,18 +130,38 @@ public class ProductServiceTests
         Assert.AreEqual(request.Stock, product.Stock);
         Assert.IsTrue(product.IsActive);
 
+        Assert.IsNotNull(capturedMovements);
+        Assert.AreEqual(1, capturedMovements.Count);
+        Assert.AreEqual(product.Id, capturedMovements[0].ProductId);
+        Assert.AreEqual(InventoryMovementType.In, capturedMovements[0].Type);
+        Assert.AreEqual(3, capturedMovements[0].Quantity); // 5 -> 8
+
         _repo.Verify(r => r.GetByIdAsync(id), Times.Once);
-        _repo.Verify(r => r.UpdateAsync(product, It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.UpdateAsync(product, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
     public async Task DeleteProductAsync_ShouldCallRepository()
     {
         var id = Guid.NewGuid();
-        _repo.Setup(r => r.DeleteAsync(id, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        var product = new Product(name: "A", price: 10m, initialStock: 5, description: null);
+        _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(product);
+
+        IReadOnlyList<InventoryMovement>? capturedMovements = null;
+        _repo
+            .Setup(r => r.DeleteAsync(id, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<Guid, IReadOnlyList<InventoryMovement>, CancellationToken>((_, m, _) => capturedMovements = m)
+            .Returns(Task.CompletedTask);
 
         await _service.DeleteProductAsync(id);
 
-        _repo.Verify(r => r.DeleteAsync(id, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.IsNotNull(capturedMovements);
+        Assert.AreEqual(1, capturedMovements.Count);
+        Assert.AreEqual(product.Id, capturedMovements[0].ProductId);
+        Assert.AreEqual(InventoryMovementType.Out, capturedMovements[0].Type);
+        Assert.AreEqual(5, capturedMovements[0].Quantity);
+
+        _repo.Verify(r => r.GetByIdAsync(id), Times.Once);
+        _repo.Verify(r => r.DeleteAsync(id, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
