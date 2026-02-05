@@ -65,7 +65,7 @@ public class ProductServiceTests
         Assert.AreEqual("A", result[0].Name);
         Assert.AreEqual(5, result[0].Stock);
         Assert.AreEqual("B", result[1].Name);
-        Assert.AreEqual(0, result[1].Stock);
+        Assert.IsNull(result[1].Stock);
 
         _repo.Verify(r => r.GetAllAsync(), Times.Once);
     }
@@ -82,7 +82,7 @@ public class ProductServiceTests
 
         Assert.AreEqual(product.Name, dto.Name);
         Assert.AreEqual(product.Price, dto.Price);
-        Assert.AreEqual(product.Stock ?? 0, dto.Stock);
+        Assert.AreEqual(product.Stock, dto.Stock);
         Assert.AreEqual(product.Description, dto.Description);
 
         _repo.Verify(r => r.GetByIdAsync(id), Times.Once);

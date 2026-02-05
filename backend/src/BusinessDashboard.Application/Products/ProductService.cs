@@ -40,7 +40,7 @@ public class ProductService : IProductService
             Name = p.Name,
             Description = p.Description,
             Price = p.Price,
-            Stock = p.Stock ?? 0,
+            Stock = p.Stock,
             IsActive = p.IsActive
         });
     }
@@ -54,7 +54,7 @@ public class ProductService : IProductService
             Name = product.Name,
             Description = product.Description,
             Price = product.Price,
-            Stock = product.Stock ?? 0,
+            Stock = product.Stock,
             IsActive = product.IsActive
         };
     }

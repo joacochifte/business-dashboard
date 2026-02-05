@@ -1,11 +1,12 @@
 import Link from "next/link";
+import ProductRowActions from "./ui/ProductRowActions";
 
 type ProductDto = {
   id: string;
   name: string;
   description?: string | null;
   price: number;
-  stock: number;
+  stock: number | null;
   isActive: boolean;
 };
 
@@ -42,6 +43,7 @@ export default async function ProductsPage() {
             <th className="px-3 py-2 text-right font-medium text-neutral-700">Price</th>
             <th className="px-3 py-2 text-right font-medium text-neutral-700">Stock</th>
             <th className="px-3 py-2 font-medium text-neutral-700">Active</th>
+            <th className="px-3 py-2 text-right font-medium text-neutral-700">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -49,7 +51,13 @@ export default async function ProductsPage() {
             <tr key={p.id} className="border-t border-neutral-200">
               <td className="px-3 py-2">{p.name}</td>
               <td className="px-3 py-2 text-right tabular-nums">{p.price}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{p.stock}</td>
+              <td className="px-3 py-2 text-right tabular-nums">
+                {p.stock === null ? (
+                  <span className="text-xs font-medium text-neutral-600">Untracked</span>
+                ) : (
+                  p.stock
+                )}
+              </td>
               <td className="px-3 py-2">
                 <span
                   className={
@@ -60,6 +68,9 @@ export default async function ProductsPage() {
                 >
                   {p.isActive ? "Yes" : "No"}
                 </span>
+              </td>
+              <td className="px-3 py-2">
+                <ProductRowActions productId={p.id} />
               </td>
             </tr>
           ))}
