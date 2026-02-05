@@ -1,5 +1,6 @@
 using BusinessDashboard.Domain.Inventory;
 using BusinessDashboard.Domain.Sales;
+using BusinessDashboard.Domain.Common.Exceptions;
 using BusinessDashboard.Infrastructure.Persistence;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -73,7 +74,7 @@ public sealed class SaleRepository : ISaleRepository
             .Include(s => s.Items)
             .FirstOrDefaultAsync(s => s.Id == saleId, ct);
         if (sale is null)
-            throw new InvalidOperationException("Sale not found.");
+            throw new NotFoundException("Sale", saleId.ToString());
         return sale;
     }
 }

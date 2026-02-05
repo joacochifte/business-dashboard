@@ -2,6 +2,7 @@ using BusinessDashboard.Infrastructure.Sales;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Domain.Inventory;
+using BusinessDashboard.Domain.Common.Exceptions;
 
 namespace BusinessDashboard.Application.Sales;
 
@@ -22,7 +23,7 @@ public sealed class SalesService : ISalesService
         var sale = new Sale(items, request.CustomerName, request.PaymentMethod);
 
         if (request.Total > 0 && request.Total != sale.Total)
-            throw new InvalidOperationException("Total mismatch.");
+            throw new BusinessRuleException("Total mismatch.");
 
         var movements = await AdjustStockAndCreateMovements(items, sale.CreatedAt, ct);
         await _saleRepo.AddAsync(sale, movements, ct);
@@ -59,7 +60,7 @@ public sealed class SalesService : ISalesService
     private static IEnumerable<SaleItem> CreateItemsFromRequest(IEnumerable<SaleItemDto> items)
     {
         if (items is null || !items.Any())
-            throw new InvalidOperationException("A sale must have at least one item.");
+            throw new BusinessRuleException("A sale must have at least one item.");
 
         var saleItems = items.Select(i => new SaleItem(
             productId: i.ProductId,
@@ -90,7 +91,7 @@ public sealed class SalesService : ISalesService
                 continue;
 
             if (product.Stock.Value < entry.Quantity)
-                throw new InvalidOperationException($"Insufficient stock for product {product.Name}.");
+                throw new BusinessRuleException($"Insufficient stock for product {product.Name}.");
 
             product.AdjustStock(-entry.Quantity);
 

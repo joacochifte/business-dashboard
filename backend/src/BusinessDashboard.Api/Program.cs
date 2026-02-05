@@ -1,6 +1,7 @@
 using BusinessDashboard.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using BusinessDashboard.Api.Extensions;
+using BusinessDashboard.Api.Middlewares;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddControllers();
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

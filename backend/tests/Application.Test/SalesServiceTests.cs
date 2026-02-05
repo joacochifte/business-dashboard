@@ -5,6 +5,7 @@ using BusinessDashboard.Domain.Products;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Infrastructure.Sales;
 using Moq;
+using BusinessDashboard.Domain.Common.Exceptions;
 
 namespace Application.Test.Sales;
 
@@ -58,7 +59,7 @@ public class SalesServiceTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(InvalidOperationException))]
+    [ExpectedException(typeof(BusinessRuleException))]
     public async Task CreateSaleAsync_WithNoProducts_ShouldThrowInvalidOperationException()
     {
         var request = new SaleCreationDto
@@ -95,7 +96,7 @@ public class SalesServiceTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(InvalidOperationException))]
+    [ExpectedException(typeof(BusinessRuleException))]
     public async Task CreateSaleAsync_WithTotalMismatch_ShouldThrowInvalidOperationException()
     {
         var pid = Guid.NewGuid();

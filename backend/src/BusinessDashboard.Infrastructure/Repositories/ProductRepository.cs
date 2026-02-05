@@ -1,4 +1,5 @@
 using BusinessDashboard.Domain.Products;
+using BusinessDashboard.Domain.Common.Exceptions;
 using BusinessDashboard.Infrastructure.Persistence;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +51,7 @@ public sealed class ProductRepository : IProductRepository
     {
         var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId, ct);
         if (product is null)
-            throw new InvalidOperationException("Product not found.");
+            throw new NotFoundException("Product", productId.ToString());
 
         return product;
     }
