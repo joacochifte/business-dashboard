@@ -1,5 +1,6 @@
 "use client";
 
+import { apiFetchClient } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,22 +21,9 @@ export default function ProductRowActions({ productId }: Props) {
     const ok = window.confirm("Delete this product?");
     if (!ok) return;
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (!baseUrl) {
-      setError("Missing NEXT_PUBLIC_API_BASE_URL.");
-      return;
-    }
-
     setDeleting(true);
     try {
-      const res = await fetch(`${baseUrl}/products/${productId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Request failed: ${res.status}`);
-      }
+      await apiFetchClient(`/products/${productId}`, { method: "DELETE" });
 
       router.refresh();
     } catch (err) {
@@ -66,4 +54,3 @@ export default function ProductRowActions({ productId }: Props) {
     </div>
   );
 }
-
