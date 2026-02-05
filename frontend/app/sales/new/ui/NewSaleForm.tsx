@@ -178,12 +178,16 @@ export default function NewSaleForm() {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium text-neutral-800">Payment method</span>
-          <input
+          <select
             value={form.paymentMethod}
             onChange={(e) => setForm((s) => ({ ...s, paymentMethod: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
-            placeholder="Cash, card..."
-          />
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500"
+          >
+            <option value="">Select payment method</option>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="Transfer">Transfer</option>
+          </select>
         </label>
       </div>
 
@@ -219,18 +223,14 @@ export default function NewSaleForm() {
                 </select>
               </label>
 
-              <label className="grid gap-1 md:col-span-3">
+              <span className="grid gap-1 md:col-span-3">
                 <span className="text-xs font-medium text-neutral-700">Unit price</span>
-                <input
-                  value={it.unitPrice}
-                  onChange={(e) => setItem(idx, { unitPrice: e.target.value })}
-                  className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
-                  inputMode="decimal"
-                  placeholder="0"
-                />
-              </label>
+                <span className="text-sm text-neutral-700">
+                  {it.unitPrice || "--"}
+                </span>
+              </span>
 
-              <label className="grid gap-1 md:col-span-2">
+              <span className="grid gap-1 md:col-span-2">
                 <span className="text-xs font-medium text-neutral-700">Qty</span>
                 <input
                   value={it.quantity}
@@ -239,7 +239,7 @@ export default function NewSaleForm() {
                   inputMode="numeric"
                   placeholder="1"
                 />
-              </label>
+              </span>
 
               <div className="flex items-end md:col-span-1">
                 <button
@@ -276,7 +276,7 @@ export default function NewSaleForm() {
       </div>
 
       <p className="text-xs text-neutral-600">
-        Unit price is auto-filled from the product, but you can override it if needed.
+        Unit price is taken from the product price. If you need discounts later, we can add them as a separate field.
       </p>
     </form>
   );
