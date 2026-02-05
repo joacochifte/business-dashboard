@@ -3,6 +3,14 @@ export type ApiError = Error & { status?: number; body?: string };
 // Date values across the API are represented as ISO 8601 UTC strings, e.g. "2026-02-05T00:00:00Z".
 export type IsoDateTime = string;
 
+type ProblemDetails = {
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+  [key: string]: unknown;
+};
+
 function makeApiError(message: string, status?: number, body?: string): ApiError {
   const err = new Error(message) as ApiError;
   err.status = status;
@@ -10,9 +18,26 @@ function makeApiError(message: string, status?: number, body?: string): ApiError
   return err;
 }
 
-async function parseErrorBody(res: Response) {
+async function parseError(res: Response): Promise<{ message: string; bodyText: string }> {
+  const contentType = res.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/problem+json")) {
+    try {
+      const pd = (await res.json()) as ProblemDetails;
+      const msg = (typeof pd.detail === "string" && pd.detail.trim())
+        ? pd.detail
+        : (typeof pd.title === "string" && pd.title.trim())
+          ? pd.title
+          : `Request failed: ${res.status}`;
+      return { message: msg, bodyText: JSON.stringify(pd) };
+    } catch {
+      // Fall through to text parsing.
+    }
+  }
+
   const text = await res.text().catch(() => "");
-  return text;
+  const msg = text.trim() ? text : `Request failed: ${res.status}`;
+  return { message: msg, bodyText: text };
 }
 
 function joinUrl(baseUrl: string, path: string) {
@@ -46,8 +71,8 @@ export async function apiFetchServer(path: string, init?: RequestInit) {
   const res = await fetch(joinUrl(getApiBaseUrl(), path), init);
 
   if (!res.ok) {
-    const body = await parseErrorBody(res);
-    throw makeApiError(body || `Request failed: ${res.status}`, res.status, body);
+    const err = await parseError(res);
+    throw makeApiError(err.message, res.status, err.bodyText);
   }
 
   return res;
@@ -58,8 +83,8 @@ export async function apiFetchClient(path: string, init?: RequestInit) {
   const res = await fetch(joinUrl(getApiBaseUrl(), path), init);
 
   if (!res.ok) {
-    const body = await parseErrorBody(res);
-    throw makeApiError(body || `Request failed: ${res.status}`, res.status, body);
+    const err = await parseError(res);
+    throw makeApiError(err.message, res.status, err.bodyText);
   }
 
   return res;
@@ -81,8 +106,8 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
   const res = await fetch(joinUrl(getApiBaseUrl(), path), init);
 
   if (!res.ok) {
-    const body = await parseErrorBody(res);
-    throw makeApiError(body || `Request failed: ${res.status}`, res.status, body);
+    const err = await parseError(res);
+    throw makeApiError(err.message, res.status, err.bodyText);
   }
 
   return res.json() as Promise<T>;
