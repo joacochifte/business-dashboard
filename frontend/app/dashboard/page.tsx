@@ -9,7 +9,9 @@ function formatMoney(v: number) {
 function formatDate(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(d);
+  // periodStart from the API is UTC (e.g. 2026-02-05T00:00:00Z). Force UTC here so the label
+  // doesn't shift to the previous/next day in local timezones.
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(d);
 }
 
 export default async function DashboardPage() {
@@ -142,4 +144,3 @@ export default async function DashboardPage() {
     </main>
   );
 }
-
