@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getDashboardSummary, getSalesByPeriod, getTopProducts } from "@/lib/dashboard.api";
+import TopProductsBarChart from "./ui/TopProductsBarChart";
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
@@ -299,6 +300,10 @@ export default async function DashboardPage({ searchParams }: Props) {
           <div className="space-y-0.5">
             <h2 className="text-sm font-semibold text-neutral-900">Top products</h2>
             <p className="text-xs text-neutral-600">By revenue</p>
+          </div>
+
+          <div className="mt-4">
+            <TopProductsBarChart data={topProducts} />
           </div>
 
           <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200">

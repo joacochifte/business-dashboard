@@ -44,7 +44,6 @@ public class Sale : Entity
     {
         if (item == null)
             throw new ArgumentNullException(nameof(item));
-
         _items.Add(item);
         RecalculateTotal();
     }

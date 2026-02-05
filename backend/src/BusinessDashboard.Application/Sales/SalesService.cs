@@ -84,7 +84,7 @@ public sealed class SalesService : ISalesService
         foreach (var entry in perProduct)
         {
             var product = await _productRepo.GetByIdAsync(entry.ProductId);
-
+            IsProductActive(product);
             // Products with Stock == null do not track inventory.
             if (product.Stock is null)
                 continue;
@@ -122,5 +122,10 @@ public sealed class SalesService : ISalesService
             Total = sale.Total,
             CreatedAt = sale.CreatedAt
         };
+    }
+    private void IsProductActive(Domain.Products.Product product)
+    {
+        if (!product.IsActive)
+            throw new InvalidOperationException($"Product {product.Name} is inactive.");
     }
 }

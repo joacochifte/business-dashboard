@@ -153,6 +153,15 @@ export default function EditProductForm({ product }: Props) {
             disabled={!form.trackStock}
             placeholder={form.trackStock ? "0" : "Untracked"}
           />
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.isActive}
+              onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
+              className="h-4 w-4 rounded border-neutral-300"
+            />
+            <span className="text-sm text-neutral-800">Active</span>
+          </label>
           <label className="mt-2 flex items-center gap-2">
             <input
               type="checkbox"
@@ -171,16 +180,7 @@ export default function EditProductForm({ product }: Props) {
           <span className="text-xs text-neutral-600">
             {form.trackStock ? "Enter the current stock." : "Untracked (service / no inventory)."}
           </span>
-        </label>
 
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={form.isActive}
-            onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
-            className="h-4 w-4 rounded border-neutral-300"
-          />
-          <span className="text-sm text-neutral-800">Active</span>
         </label>
       </div>
 
