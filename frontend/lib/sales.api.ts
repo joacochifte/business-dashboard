@@ -1,12 +1,6 @@
 import { apiFetchClient, apiJsonServer } from "@/lib/api";
 import type { IsoDateTime } from "@/lib/api";
 
-export type SaleItemDto = {
-  productId: string;
-  unitPrice: number;
-  quantity: number;
-};
-
 export type SaleDto = {
   id: string;
   items: SaleItemDto[];
@@ -16,8 +10,13 @@ export type SaleDto = {
   createdAt: IsoDateTime;
 };
 
+export type SaleItemDto = {
+  productId: string;
+  unitPrice: number;
+  quantity: number;
+};
+
 export type SaleCreationDto = {
-  id?: string;
   items: SaleItemDto[];
   total: number;
   customerName?: string | null;
@@ -25,7 +24,7 @@ export type SaleCreationDto = {
 };
 
 export type SaleUpdateDto = {
-  id?: string;
+  id: string;
   items: SaleItemDto[];
   total: number;
   customerName?: string | null;
