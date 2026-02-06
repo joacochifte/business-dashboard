@@ -1,7 +1,7 @@
-import Link from "next/link";
-
 import { getDashboardSummary, getSalesByPeriod, getTopProducts } from "@/lib/dashboard.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
+import PageShell from "../ui/PageShell";
+import AppNav from "../ui/AppNav";
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
@@ -135,31 +135,18 @@ export default async function DashboardPage({ searchParams }: Props) {
   const maxRevenue = points.reduce((m, p) => Math.max(m, p.revenue), 0);
 
   return (
-    <main className="p-6 space-y-6">
+    <PageShell>
       <header className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Dashboard</h1>
           <p className="text-sm text-neutral-600">
             High-level metrics for your business. <span className="font-medium text-neutral-800">{range.label}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/products"
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-sm hover:bg-neutral-50"
-          >
-            Products
-          </Link>
-          <Link
-            href="/sales"
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-sm hover:bg-neutral-50"
-          >
-            Sales
-          </Link>
-        </div>
+        <AppNav className="hidden md:flex" />
       </header>
 
-      <section className="rounded-xl border border-neutral-200 bg-white p-4">
+      <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
         <form className="grid gap-3 md:grid-cols-12" method="GET">
           <div className="md:col-span-4">
             <label className="grid gap-1">
@@ -167,7 +154,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               <select
                 name="view"
                 defaultValue={mode}
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500"
+                className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
               >
                 <option value="daily">Daily</option>
                 <option value="month">Month</option>
@@ -184,7 +171,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 name="m"
                 defaultValue={String(month).padStart(2, "0")}
                 disabled={mode !== "month"}
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+                className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
               >
                 {Array.from({ length: 12 }, (_, i) => {
                   const value = String(i + 1).padStart(2, "0");
@@ -208,7 +195,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 max={2100}
                 defaultValue={year}
                 disabled={mode !== "year" && mode !== "month"}
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+                className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
               />
             </label>
           </div>
@@ -221,7 +208,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 name="d"
                 defaultValue={`${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
                 disabled={mode !== "daily"}
-                className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+                className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
               />
             </label>
           </div>
@@ -229,7 +216,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           <div className="flex items-end md:col-span-2">
             <button
               type="submit"
-              className="w-full rounded-md bg-black px-3 py-2 text-sm font-medium text-white hover:bg-black/90"
+              className="w-full rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90"
             >
               Apply
             </button>
@@ -237,28 +224,28 @@ export default async function DashboardPage({ searchParams }: Props) {
         </form>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <section className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="text-xs font-medium text-neutral-600">Revenue total</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.revenueTotal)}</div>
           <div className="mt-1 text-xs text-neutral-500">In selected period</div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="text-xs font-medium text-neutral-600">Sales count</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{summary.salesCount}</div>
           <div className="mt-1 text-xs text-neutral-500">Transactions</div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="text-xs font-medium text-neutral-600">Average ticket</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.avgTicket)}</div>
           <div className="mt-1 text-xs text-neutral-500">Revenue / sales</div>
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <section className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-neutral-900">Sales by period</h2>
@@ -268,7 +255,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
           <div className="mt-4 space-y-2">
             {points.length === 0 ? (
-              <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-8 text-center text-sm text-neutral-600">
+              <div className="rounded-2xl border border-black/10 bg-white/50 px-3 py-8 text-center text-sm text-neutral-600">
                 No data yet.
               </div>
             ) : (
@@ -278,7 +265,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   <div key={p.periodStart} className="grid grid-cols-12 items-center gap-3">
                     <div className="col-span-4 text-xs text-neutral-700">{formatDate(p.periodStart)}</div>
                     <div className="col-span-6">
-                      <div className="h-2 w-full rounded-full bg-neutral-100">
+                      <div className="h-2 w-full rounded-full bg-black/5">
                         <div
                           className="h-2 rounded-full bg-neutral-900/80"
                           style={{ width: `${width}%` }}
@@ -296,7 +283,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="space-y-0.5">
             <h2 className="text-sm font-semibold text-neutral-900">Top products</h2>
             <p className="text-xs text-neutral-600">By revenue</p>
@@ -306,26 +293,26 @@ export default async function DashboardPage({ searchParams }: Props) {
             <TopProductsBarChart data={topProducts} />
           </div>
 
-          <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-black/10 bg-white/40">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-neutral-50 text-left">
-                  <th className="px-3 py-2 font-medium text-neutral-700">Product</th>
-                  <th className="px-3 py-2 text-right font-medium text-neutral-700">Quantity</th>
-                  <th className="px-3 py-2 text-right font-medium text-neutral-700">Revenue</th>
+                <tr className="bg-white/40 text-left">
+                  <th className="px-4 py-3 font-medium text-neutral-700">Product</th>
+                  <th className="px-4 py-3 text-right font-medium text-neutral-700">Quantity</th>
+                  <th className="px-4 py-3 text-right font-medium text-neutral-700">Revenue</th>
                 </tr>
               </thead>
               <tbody>
                 {topProducts.map((p) => (
-                  <tr key={p.productId} className="border-t border-neutral-200">
-                    <td className="px-3 py-2">{p.productName || p.productId}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{p.quantity}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{formatMoney(p.revenue)}</td>
+                  <tr key={p.productId} className="border-t border-black/10">
+                    <td className="px-4 py-3 font-medium text-neutral-900">{p.productName || p.productId}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{p.quantity}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{formatMoney(p.revenue)}</td>
                   </tr>
                 ))}
                 {topProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="px-3 py-10 text-center text-sm text-neutral-600">
+                    <td colSpan={3} className="px-4 py-12 text-center text-sm text-neutral-600">
                       No data yet.
                     </td>
                   </tr>
@@ -335,6 +322,6 @@ export default async function DashboardPage({ searchParams }: Props) {
           </div>
         </div>
       </section>
-    </main>
+    </PageShell>
   );
 }

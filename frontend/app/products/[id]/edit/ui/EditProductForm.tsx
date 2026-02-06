@@ -107,7 +107,7 @@ export default function EditProductForm({ product }: Props) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-900 shadow-sm backdrop-blur">
           {error}
         </div>
       ) : null}
@@ -118,7 +118,7 @@ export default function EditProductForm({ product }: Props) {
           <input
             value={form.name}
             onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             required
           />
         </label>
@@ -128,7 +128,7 @@ export default function EditProductForm({ product }: Props) {
           <input
             value={form.price}
             onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             inputMode="decimal"
           />
         </label>
@@ -138,7 +138,7 @@ export default function EditProductForm({ product }: Props) {
           <textarea
             value={form.description}
             onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-            className="min-h-[96px] rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="min-h-[96px] rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             placeholder="Optional"
           />
         </label>
@@ -148,7 +148,7 @@ export default function EditProductForm({ product }: Props) {
           <input
             value={form.stock}
             onChange={(e) => setForm((s) => ({ ...s, stock: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
             inputMode="numeric"
             disabled={!form.trackStock}
             placeholder={form.trackStock ? "0" : "Untracked"}
@@ -158,7 +158,7 @@ export default function EditProductForm({ product }: Props) {
               type="checkbox"
               checked={form.isActive}
               onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
-              className="h-4 w-4 rounded border-neutral-300"
+              className="h-4 w-4 rounded border-black/20 bg-white/70"
             />
             <span className="text-sm text-neutral-800">Active</span>
           </label>
@@ -173,7 +173,7 @@ export default function EditProductForm({ product }: Props) {
                   stock: e.target.checked ? (s.stock.trim() ? s.stock : "0") : "",
                 }))
               }
-              className="h-4 w-4 rounded border-neutral-300"
+              className="h-4 w-4 rounded border-black/20 bg-white/70"
             />
             <span className="text-sm text-neutral-800">Track stock</span>
           </label>
@@ -188,11 +188,11 @@ export default function EditProductForm({ product }: Props) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90 disabled:opacity-60"
         >
           {submitting ? "Saving..." : "Save changes"}
         </button>
-        <Link href="/products" className="text-sm text-neutral-700 hover:underline">
+        <Link href="/products" className="text-sm font-medium text-neutral-800 hover:underline">
           Cancel
         </Link>
       </div>

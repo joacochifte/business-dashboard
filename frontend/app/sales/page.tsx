@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { getSales, type SaleDto } from "@/lib/sales.api";
 import SaleRowActions from "./ui/SaleRowActions";
+import PageShell from "../ui/PageShell";
+import AppNav from "../ui/AppNav";
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
@@ -17,45 +19,48 @@ export default async function SalesPage() {
   const sales = await getSales();
 
   return (
-    <main className="p-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Sales</h1>
-        <Link
-          href="/sales/new"
-          className="rounded-md bg-black px-3 py-2 text-sm font-medium text-white hover:bg-black/90"
-        >
-          Add sale
-        </Link>
+    <PageShell>
+      <header className="flex items-end justify-between gap-4">
+        <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Sales</h1>
+        <div className="flex items-center gap-2">
+          <AppNav className="hidden md:flex" />
+          <Link
+            href="/sales/new"
+            className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90"
+          >
+            Add sale
+          </Link>
+        </div>
       </header>
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200">
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-black/10 bg-white/60 shadow-sm backdrop-blur">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-neutral-50 text-left">
-              <th className="px-3 py-2 font-medium text-neutral-700">Date</th>
-              <th className="px-3 py-2 font-medium text-neutral-700">Customer</th>
-              <th className="px-3 py-2 font-medium text-neutral-700">Payment</th>
-              <th className="px-3 py-2 text-right font-medium text-neutral-700">Items</th>
-              <th className="px-3 py-2 text-right font-medium text-neutral-700">Total</th>
-              <th className="px-3 py-2 text-right font-medium text-neutral-700">Actions</th>
+            <tr className="bg-white/40 text-left">
+              <th className="px-4 py-3 font-medium text-neutral-700">Date</th>
+              <th className="px-4 py-3 font-medium text-neutral-700">Customer</th>
+              <th className="px-4 py-3 font-medium text-neutral-700">Payment</th>
+              <th className="px-4 py-3 text-right font-medium text-neutral-700">Items</th>
+              <th className="px-4 py-3 text-right font-medium text-neutral-700">Total</th>
+              <th className="px-4 py-3 text-right font-medium text-neutral-700">Actions</th>
             </tr>
           </thead>
           <tbody>
             {sales.map((s: SaleDto) => (
-              <tr key={s.id} className="border-t border-neutral-200">
-                <td className="px-3 py-2 whitespace-nowrap">{formatDateTime(s.createdAt)}</td>
-                <td className="px-3 py-2">{s.customerName?.trim() ? s.customerName : "-"}</td>
-                <td className="px-3 py-2">{s.paymentMethod?.trim() ? s.paymentMethod : "-"}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{s.items.length}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatMoney(s.total)}</td>
-                <td className="px-3 py-2">
+              <tr key={s.id} className="border-t border-black/10">
+                <td className="px-4 py-3 whitespace-nowrap text-neutral-900">{formatDateTime(s.createdAt)}</td>
+                <td className="px-4 py-3 text-neutral-900">{s.customerName?.trim() ? s.customerName : "-"}</td>
+                <td className="px-4 py-3 text-neutral-900">{s.paymentMethod?.trim() ? s.paymentMethod : "-"}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{s.items.length}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{formatMoney(s.total)}</td>
+                <td className="px-4 py-3">
                   <SaleRowActions saleId={s.id} />
                 </td>
               </tr>
             ))}
             {sales.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-10 text-center text-sm text-neutral-600">
+                <td colSpan={6} className="px-4 py-12 text-center text-sm text-neutral-600">
                   No sales yet.
                 </td>
               </tr>
@@ -63,7 +68,6 @@ export default async function SalesPage() {
           </tbody>
         </table>
       </div>
-    </main>
+    </PageShell>
   );
 }
-

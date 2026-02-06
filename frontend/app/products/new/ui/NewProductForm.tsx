@@ -88,7 +88,7 @@ export default function NewProductForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-900 shadow-sm backdrop-blur">
           {error}
         </div>
       ) : null}
@@ -99,7 +99,7 @@ export default function NewProductForm() {
           <input
             value={form.name}
             onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             placeholder="SAAMA Therapy"
             required
           />
@@ -110,7 +110,7 @@ export default function NewProductForm() {
           <input
             value={form.price}
             onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             placeholder="100"
             inputMode="decimal"
           />
@@ -121,7 +121,7 @@ export default function NewProductForm() {
           <textarea
             value={form.description}
             onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-            className="min-h-[96px] rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="min-h-[96px] rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             placeholder="Optional"
           />
         </label>
@@ -131,7 +131,7 @@ export default function NewProductForm() {
           <input
             value={form.initialStock}
             onChange={(e) => setForm((s) => ({ ...s, initialStock: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
             placeholder="0"
             inputMode="numeric"
             disabled={!form.trackStock}
@@ -147,7 +147,7 @@ export default function NewProductForm() {
                 initialStock: e.target.checked ? s.initialStock : "0",
               }))
             }
-            className="h-4 w-4 rounded border-neutral-300"
+            className="h-4 w-4 rounded border-black/20 bg-white/70"
           />
           <span className="text-sm text-neutral-800">Track stock</span>
         </label>
@@ -159,11 +159,11 @@ export default function NewProductForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90 disabled:opacity-60"
         >
           {submitting ? "Saving..." : "Save"}
         </button>
-        <a href="/products" className="text-sm text-neutral-700 hover:underline">
+        <a href="/products" className="text-sm font-medium text-neutral-800 hover:underline">
           Cancel
         </a>
       </div>

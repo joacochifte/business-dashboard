@@ -38,7 +38,7 @@ export default function SaleRowActions({ saleId }: Props) {
     <div className="flex items-center justify-end gap-2">
       <Link
         href={`/sales/${saleId}/edit`}
-        className="rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-800 shadow-sm hover:bg-neutral-50"
+        className="rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-xs font-semibold text-neutral-900 shadow-sm backdrop-blur transition hover:bg-white/80"
       >
         Edit
       </Link>
@@ -46,7 +46,7 @@ export default function SaleRowActions({ saleId }: Props) {
         type="button"
         onClick={onDelete}
         disabled={deleting}
-        className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-800 shadow-sm hover:bg-red-100 disabled:opacity-60"
+        className="rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-xs font-semibold text-rose-900 shadow-sm backdrop-blur transition hover:bg-rose-100/80 disabled:opacity-60"
       >
         {deleting ? "Deleting..." : "Delete"}
       </button>
@@ -54,4 +54,3 @@ export default function SaleRowActions({ saleId }: Props) {
     </div>
   );
 }
-

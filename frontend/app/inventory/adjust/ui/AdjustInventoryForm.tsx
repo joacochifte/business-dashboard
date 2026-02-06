@@ -88,7 +88,9 @@ export default function AdjustInventoryForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-900 shadow-sm backdrop-blur">
+          {error}
+        </div>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -98,7 +100,7 @@ export default function AdjustInventoryForm() {
             value={form.productId}
             onChange={(e) => setForm((s) => ({ ...s, productId: e.target.value }))}
             disabled={loading}
-            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
           >
             <option value="">{loading ? "Loading products..." : "Select a product"}</option>
             {products.map((p) => (
@@ -123,14 +125,14 @@ export default function AdjustInventoryForm() {
           <input
             value={form.delta}
             onChange={(e) => setForm((s) => ({ ...s, delta: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             inputMode="numeric"
             placeholder="-1 or 5"
           />
           <span className="text-xs text-neutral-600">Use a negative number to remove stock, positive to add.</span>
         </label>
 
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-700">
+        <div className="rounded-2xl border border-black/10 bg-white/50 p-4 text-xs text-neutral-700 shadow-sm backdrop-blur">
           <div className="font-medium text-neutral-800">Notes</div>
           <div className="mt-1">
             - Products marked as <span className="font-medium">Untracked</span> shouldn&apos;t be adjusted (backend will reject).
@@ -143,15 +145,14 @@ export default function AdjustInventoryForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90 disabled:opacity-60"
         >
           {submitting ? "Saving..." : "Apply adjustment"}
         </button>
-        <a href="/inventory" className="text-sm text-neutral-700 hover:underline">
+        <a href="/inventory" className="text-sm font-medium text-neutral-800 hover:underline">
           Cancel
         </a>
       </div>
     </form>
   );
 }
-

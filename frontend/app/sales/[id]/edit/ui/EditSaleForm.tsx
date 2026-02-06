@@ -170,7 +170,7 @@ export default function EditSaleForm({ sale }: Props) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-900 shadow-sm backdrop-blur">
           {error}
         </div>
       ) : null}
@@ -181,7 +181,7 @@ export default function EditSaleForm({ sale }: Props) {
           <input
             value={form.customerName}
             onChange={(e) => setForm((s) => ({ ...s, customerName: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             placeholder="Optional"
           />
         </label>
@@ -191,25 +191,25 @@ export default function EditSaleForm({ sale }: Props) {
           <input
             value={form.paymentMethod}
             onChange={(e) => setForm((s) => ({ ...s, paymentMethod: e.target.value }))}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             placeholder="Cash, card..."
           />
         </label>
       </div>
 
-      <div className="rounded-lg border border-neutral-200">
-        <div className="flex items-center justify-between border-b border-neutral-200 bg-neutral-50 px-3 py-2">
+      <div className="rounded-2xl border border-black/10 bg-white/60 shadow-sm backdrop-blur">
+        <div className="flex items-center justify-between border-b border-black/10 bg-white/40 px-4 py-3">
           <div className="text-sm font-medium text-neutral-800">Items</div>
           <button
             type="button"
             onClick={addItem}
-            className="rounded-md border border-neutral-300 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-800 shadow-sm hover:bg-neutral-50"
+            className="rounded-xl border border-black/10 bg-white/60 px-3 py-2 text-xs font-semibold text-neutral-900 shadow-sm backdrop-blur transition hover:bg-white/80"
           >
             Add item
           </button>
         </div>
 
-        <div className="p-3 space-y-3">
+        <div className="space-y-3 p-4">
           {form.items.map((it, idx) => (
             <div key={idx} className="grid gap-3 md:grid-cols-12">
               <label className="grid gap-1 md:col-span-6">
@@ -217,7 +217,7 @@ export default function EditSaleForm({ sale }: Props) {
                 <select
                   value={it.productId}
                   onChange={(e) => onChangeProduct(idx, e.target.value)}
-                  className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-500 disabled:bg-neutral-100 disabled:text-neutral-500"
+                  className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
                   disabled={productsLoading}
                 >
                   <option value="">{productsLoading ? "Loading products..." : "Select a product"}</option>
@@ -234,7 +234,7 @@ export default function EditSaleForm({ sale }: Props) {
                 <input
                   value={it.unitPrice}
                   onChange={(e) => setItem(idx, { unitPrice: e.target.value })}
-                  className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+                  className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
                   inputMode="decimal"
                   placeholder="0"
                 />
@@ -245,7 +245,7 @@ export default function EditSaleForm({ sale }: Props) {
                 <input
                   value={it.quantity}
                   onChange={(e) => setItem(idx, { quantity: e.target.value })}
-                  className="rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500"
+                  className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
                   inputMode="numeric"
                   placeholder="1"
                 />
@@ -256,7 +256,7 @@ export default function EditSaleForm({ sale }: Props) {
                   type="button"
                   onClick={() => removeItem(idx)}
                   disabled={form.items.length <= 1}
-                  className="w-full rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs font-medium text-red-800 shadow-sm hover:bg-red-100 disabled:opacity-60"
+                  className="w-full rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-xs font-semibold text-rose-900 shadow-sm backdrop-blur transition hover:bg-rose-100/80 disabled:opacity-60"
                   title={form.items.length <= 1 ? "At least one item is required" : "Remove item"}
                 >
                   ✕
@@ -267,7 +267,7 @@ export default function EditSaleForm({ sale }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-3 py-2">
+      <div className="flex items-center justify-between rounded-2xl border border-black/10 bg-white/60 px-4 py-3 shadow-sm backdrop-blur">
         <span className="text-sm text-neutral-700">Total</span>
         <span className="text-sm font-semibold tabular-nums">{computedTotal.toFixed(2)}</span>
       </div>
@@ -276,11 +276,11 @@ export default function EditSaleForm({ sale }: Props) {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90 disabled:opacity-60"
         >
           {submitting ? "Saving..." : "Save changes"}
         </button>
-        <Link href="/sales" className="text-sm text-neutral-700 hover:underline">
+        <Link href="/sales" className="text-sm font-medium text-neutral-800 hover:underline">
           Cancel
         </Link>
       </div>

@@ -30,7 +30,7 @@ export default function TopProductsBarChart({ data }: Props) {
 
   if (chartData.length === 0) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-8 text-center text-sm text-neutral-600">
+      <div className="rounded-2xl border border-black/10 bg-white/50 px-3 py-8 text-center text-sm text-neutral-600 shadow-sm backdrop-blur">
         No data yet.
       </div>
     );
@@ -81,4 +81,3 @@ export default function TopProductsBarChart({ data }: Props) {
     </div>
   );
 }
-
