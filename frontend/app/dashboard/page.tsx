@@ -2,15 +2,11 @@ import { getDashboardSummary, getSalesByPeriod, getTopProducts } from "@/lib/das
 import TopProductsBarChart from "./ui/TopProductsBarChart";
 import PageShell from "../ui/PageShell";
 import AppNav from "../ui/AppNav";
+import ClientDateTime from "../ui/ClientDateTime";
+import TzOffsetField from "./ui/TzOffsetField";
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone: "UTC" }).format(d);
 }
 
 type ViewMode = "daily" | "month" | "year" | "all";
@@ -32,23 +28,40 @@ function toIso(dt: Date) {
   return dt.toISOString();
 }
 
-function startOfMonthUtc(year: number, month: number) {
-  return new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+function clampTzOffsetMinutes(n: number) {
+  // getTimezoneOffset is typically between -12:00 and +14:00.
+  return clamp(n, -12 * 60, 14 * 60);
 }
 
-function endOfMonthUtc(year: number, month: number) {
+function localStartOfDayUtc(year: number, month: number, day: number, tzOffsetMinutes: number) {
+  const ms = Date.UTC(year, month - 1, day, 0, 0, 0, 0) + tzOffsetMinutes * 60 * 1000;
+  return new Date(ms);
+}
+
+function localEndOfDayUtc(year: number, month: number, day: number, tzOffsetMinutes: number) {
+  const ms = Date.UTC(year, month - 1, day, 23, 59, 59, 999) + tzOffsetMinutes * 60 * 1000;
+  return new Date(ms);
+}
+
+function localStartOfMonthUtc(year: number, month: number, tzOffsetMinutes: number) {
+  const ms = Date.UTC(year, month - 1, 1, 0, 0, 0, 0) + tzOffsetMinutes * 60 * 1000;
+  return new Date(ms);
+}
+
+function localEndOfMonthUtc(year: number, month: number, tzOffsetMinutes: number) {
   // End = start of next month minus 1ms.
-  const nextMonthStart = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
-  return new Date(nextMonthStart.getTime() - 1);
+  const nextMonthStartMs = Date.UTC(year, month, 1, 0, 0, 0, 0) + tzOffsetMinutes * 60 * 1000;
+  return new Date(nextMonthStartMs - 1);
 }
 
-function startOfYearUtc(year: number) {
-  return new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+function localStartOfYearUtc(year: number, tzOffsetMinutes: number) {
+  const ms = Date.UTC(year, 0, 1, 0, 0, 0, 0) + tzOffsetMinutes * 60 * 1000;
+  return new Date(ms);
 }
 
-function endOfYearUtc(year: number) {
-  const nextYearStart = new Date(Date.UTC(year + 1, 0, 1, 0, 0, 0, 0));
-  return new Date(nextYearStart.getTime() - 1);
+function localEndOfYearUtc(year: number, tzOffsetMinutes: number) {
+  const nextYearStartMs = Date.UTC(year + 1, 0, 1, 0, 0, 0, 0) + tzOffsetMinutes * 60 * 1000;
+  return new Date(nextYearStartMs - 1);
 }
 
 export default async function DashboardPage({ searchParams }: Props) {
@@ -60,6 +73,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const currentDay = now.getUTCDate();
 
   const mode = (pickFirst(sp.view) as ViewMode | undefined) ?? "month";
+  const tzOffsetMinutes = clampTzOffsetMinutes(Number(pickFirst(sp.tzOffset) ?? "0") || 0);
 
   const ym = pickFirst(sp.ym); // legacy "YYYY-MM"
   const y = pickFirst(sp.y); // "YYYY"
@@ -102,26 +116,22 @@ export default async function DashboardPage({ searchParams }: Props) {
       ? { from: undefined, to: undefined, label: "All time", groupBy: "month" as const }
       : mode === "year"
         ? {
-            from: toIso(startOfYearUtc(year)),
-            to: toIso(endOfYearUtc(year)),
+            from: toIso(localStartOfYearUtc(year, tzOffsetMinutes)),
+            to: toIso(localEndOfYearUtc(year, tzOffsetMinutes)),
             label: String(year),
             groupBy: "month" as const,
           }
         : mode === "daily"
           ? {
-              from: toIso(new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))),
-              to: toIso(new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))),
-              label: new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" }).format(
-                new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
-              ),
+              from: toIso(localStartOfDayUtc(year, month, day, tzOffsetMinutes)),
+              to: toIso(localEndOfDayUtc(year, month, day, tzOffsetMinutes)),
+              label: `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
               groupBy: "day" as const,
             }
           : {
-              from: toIso(startOfMonthUtc(year, month)),
-              to: toIso(endOfMonthUtc(year, month)),
-              label: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" }).format(
-                startOfMonthUtc(year, month)
-              ),
+              from: toIso(localStartOfMonthUtc(year, month, tzOffsetMinutes)),
+              to: toIso(localEndOfMonthUtc(year, month, tzOffsetMinutes)),
+              label: `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`,
               groupBy: "day" as const,
             };
 
@@ -140,7 +150,10 @@ export default async function DashboardPage({ searchParams }: Props) {
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Dashboard</h1>
           <p className="text-sm text-neutral-600">
-            High-level metrics for your business. <span className="font-medium text-neutral-800">{range.label}</span>
+            High-level metrics for your business.{" "}
+            <span className="font-medium text-neutral-800">
+              {range.label} (local)
+            </span>
           </p>
         </div>
         <AppNav className="hidden md:flex" />
@@ -148,6 +161,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
       <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
         <form className="grid gap-3 md:grid-cols-12" method="GET">
+          <TzOffsetField />
           <div className="md:col-span-4">
             <label className="grid gap-1">
               <span className="text-xs font-medium text-neutral-700">View</span>
@@ -263,7 +277,13 @@ export default async function DashboardPage({ searchParams }: Props) {
                 const width = maxRevenue <= 0 ? 0 : Math.round((p.revenue / maxRevenue) * 100);
                 return (
                   <div key={p.periodStart} className="grid grid-cols-12 items-center gap-3">
-                    <div className="col-span-4 text-xs text-neutral-700">{formatDate(p.periodStart)}</div>
+                    <div className="col-span-4 text-xs text-neutral-700">
+                      {byPeriod.groupBy === "month" ? (
+                        <span className="tabular-nums">{p.periodStart.slice(0, 7)}</span>
+                      ) : (
+                        <ClientDateTime iso={p.periodStart} variant="date" />
+                      )}
+                    </div>
                     <div className="col-span-6">
                       <div className="h-2 w-full rounded-full bg-black/5">
                         <div

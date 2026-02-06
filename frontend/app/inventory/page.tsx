@@ -5,6 +5,7 @@ import { getInventoryMovements, type InventoryMovementItemDto } from "@/lib/inve
 import { toIsoUtcEndOfDay, toIsoUtcStartOfDay } from "@/lib/api";
 import PageShell from "../ui/PageShell";
 import AppNav from "../ui/AppNav";
+import ClientDateTime from "../ui/ClientDateTime";
 
 type Props = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -28,12 +29,6 @@ function toIsoRange(fromDate?: string, toDate?: string) {
   const to =
     toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toIsoUtcEndOfDay(new Date(`${toDate}T00:00:00Z`)) : undefined;
   return { from, to };
-}
-
-function formatDateTimeUtc(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(d);
 }
 
 function signedQuantity(m: InventoryMovementItemDto) {
@@ -174,7 +169,7 @@ export default async function InventoryPage({ searchParams }: Props) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-white/40 text-left">
-              <th className="px-4 py-3 font-medium text-neutral-700">Date (UTC)</th>
+              <th className="px-4 py-3 font-medium text-neutral-700">Date (local)</th>
               <th className="px-4 py-3 font-medium text-neutral-700">Product</th>
               <th className="px-4 py-3 font-medium text-neutral-700">Type</th>
               <th className="px-4 py-3 font-medium text-neutral-700">Reason</th>
@@ -187,7 +182,9 @@ export default async function InventoryPage({ searchParams }: Props) {
               const qty = signedQuantity(m);
               return (
                 <tr key={m.id} className="border-t border-black/10">
-                  <td className="px-4 py-3 whitespace-nowrap text-neutral-900">{formatDateTimeUtc(m.createdAt)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-neutral-900">
+                    <ClientDateTime iso={m.createdAt} />
+                  </td>
                   <td className="px-4 py-3 font-medium text-neutral-900">{productName}</td>
                   <td className="px-4 py-3 text-neutral-900">{m.type}</td>
                   <td className="px-4 py-3 text-neutral-900">{m.reason}</td>
