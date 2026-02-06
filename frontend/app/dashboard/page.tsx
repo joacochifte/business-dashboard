@@ -29,7 +29,6 @@ function toIso(dt: Date) {
 }
 
 function clampTzOffsetMinutes(n: number) {
-  // getTimezoneOffset is typically between -12:00 and +14:00.
   return clamp(n, -12 * 60, 14 * 60);
 }
 
@@ -49,7 +48,6 @@ function localStartOfMonthUtc(year: number, month: number, tzOffsetMinutes: numb
 }
 
 function localEndOfMonthUtc(year: number, month: number, tzOffsetMinutes: number) {
-  // End = start of next month minus 1ms.
   const nextMonthStartMs = Date.UTC(year, month, 1, 0, 0, 0, 0) + tzOffsetMinutes * 60 * 1000;
   return new Date(nextMonthStartMs - 1);
 }
@@ -68,12 +66,16 @@ export default async function DashboardPage({ searchParams }: Props) {
   const sp = searchParams ? await searchParams : {};
 
   const now = new Date();
-  const currentYear = now.getUTCFullYear();
-  const currentMonth = now.getUTCMonth() + 1;
-  const currentDay = now.getUTCDate();
+  // In local dev, the Next.js server runs on your machine, so local time matches your PC.
+  // In a hosted environment, "local" would be the server locale; tzOffset param can override on form submit.
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
 
   const mode = (pickFirst(sp.view) as ViewMode | undefined) ?? "month";
-  const tzOffsetMinutes = clampTzOffsetMinutes(Number(pickFirst(sp.tzOffset) ?? "0") || 0);
+  const tzOffsetRaw = pickFirst(sp.tzOffset);
+  const tzOffsetMinutes =
+    tzOffsetRaw === undefined ? clampTzOffsetMinutes(now.getTimezoneOffset()) : clampTzOffsetMinutes(Number(tzOffsetRaw) || 0);
 
   const ym = pickFirst(sp.ym); // legacy "YYYY-MM"
   const y = pickFirst(sp.y); // "YYYY"

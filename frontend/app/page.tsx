@@ -106,7 +106,7 @@ export default function HomePage() {
               </div>
               <div className="rounded-2xl border border-black/10 bg-white/60 p-4 shadow-sm backdrop-blur">
                 <div className="text-[11px] font-medium tracking-wide text-neutral-500">QUALITY</div>
-                <div className="mt-1 text-sm font-semibold text-neutral-900">Tests • DTOs • CI-ready</div>
+                <div className="mt-1 text-sm font-semibold text-neutral-900">Tests • DTOs • </div>
               </div>
             </div>
           </div>
