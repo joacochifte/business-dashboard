@@ -16,10 +16,11 @@ public class CostService : ICostService
     {
         _db = db;
     }
-    public async Task AddCostAsync(CostCreationDto costDto, CancellationToken cancellationToken = default)
+    public async Task<Guid> AddCostAsync(CostCreationDto costDto, CancellationToken cancellationToken = default)
     {
         var cost = new Cost(costDto.Name, costDto.Amount, costDto.DateIncurred, costDto.Description);
         await _db.AddCostAsync(cost, cancellationToken);
+        return cost.Id;
     }
 
     public async Task DeleteCostAsync(Guid id, CancellationToken cancellationToken = default)
