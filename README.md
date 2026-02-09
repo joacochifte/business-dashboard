@@ -15,12 +15,15 @@ It covers the essentials you would expect in a real system: product catalog, opt
 - Sales
   - Create sales with multiple items
   - Validates stock and discounts it (tracked products only)
+- Costs
+  - Create / edit / delete
 - Dashboard
   - Summary: revenue total, sales count, average ticket
   - Sales by period (day/month/year/all time)
   - Top products (by revenue)
+  - Costs by period
+  - Total Gains (Revenue - Costs) by period
 - API
-
   - Swagger in Development
   - Consistent error payloads (ProblemDetails via middleware)
 
