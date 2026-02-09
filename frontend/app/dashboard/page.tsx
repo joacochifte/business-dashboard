@@ -1,5 +1,7 @@
 import { getDashboardSummary, getSalesByPeriod, getTopProducts } from "@/lib/dashboard.api";
+import { getCosts, type CostSummaryDto } from "@/lib/costs.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
+import CostsByPeriodChart from "./ui/CostsByPeriodChart";
 import PageShell from "../ui/PageShell";
 import AppNav from "../ui/AppNav";
 import ClientDateTime from "../ui/ClientDateTime";
@@ -60,6 +62,17 @@ function localStartOfYearUtc(year: number, tzOffsetMinutes: number) {
 function localEndOfYearUtc(year: number, tzOffsetMinutes: number) {
   const nextYearStartMs = Date.UTC(year + 1, 0, 1, 0, 0, 0, 0) + tzOffsetMinutes * 60 * 1000;
   return new Date(nextYearStartMs - 1);
+}
+
+function getPeriodStartForCost(iso: string, groupBy: "day" | "month") {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+
+  if (groupBy === "month") {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)).toISOString();
 }
 
 export default async function DashboardPage({ searchParams }: Props) {
@@ -137,14 +150,26 @@ export default async function DashboardPage({ searchParams }: Props) {
               groupBy: "day" as const,
             };
 
-  const [summary, byPeriod, topProducts] = await Promise.all([
+  const [summary, byPeriod, topProducts, costs] = await Promise.all([
     getDashboardSummary({ from: range.from, to: range.to }),
     getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to }),
     getTopProducts({ limit: 10, from: range.from, to: range.to }),
+    getCosts({ startDate: range.from, endDate: range.to }),
   ]);
 
   const points = byPeriod.points ?? [];
   const maxRevenue = points.reduce((m, p) => Math.max(m, p.revenue), 0);
+  const costsTotal = costs.reduce((sum, c) => sum + c.amount, 0);
+
+  const costsGroupBy: "day" | "month" = range.groupBy === "month" ? "month" : "day";
+  const costPointsMap = new Map<string, number>();
+  for (const c of costs as CostSummaryDto[]) {
+    const key = getPeriodStartForCost(c.dateIncurred, costsGroupBy);
+    costPointsMap.set(key, (costPointsMap.get(key) ?? 0) + c.amount);
+  }
+  const costsByPeriodPoints = Array.from(costPointsMap.entries())
+    .map(([periodStart, amount]) => ({ periodStart, amount }))
+    .sort((a, b) => a.periodStart.localeCompare(b.periodStart));
 
   return (
     <PageShell>
@@ -240,10 +265,16 @@ export default async function DashboardPage({ searchParams }: Props) {
         </form>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-4">
+      <section className="mt-6 grid gap-4 md:grid-cols-5">
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="text-xs font-medium text-neutral-600">Revenue total</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.revenueTotal)}</div>
+          <div className="mt-1 text-xs text-neutral-500">In selected period</div>
+        </div>
+
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+          <div className="text-xs font-medium text-neutral-600">Costs total</div>
+          <div className="mt-2 text-2xl font-semibold tabular-nums text-amber-700">{formatMoney(costsTotal)}</div>
           <div className="mt-1 text-xs text-neutral-500">In selected period</div>
         </div>
 
@@ -265,6 +296,17 @@ export default async function DashboardPage({ searchParams }: Props) {
           <div className="text-xs font-medium text-neutral-600">Average ticket</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.avgTicket)}</div>
           <div className="mt-1 text-xs text-neutral-500">Revenue / sales</div>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+        <div className="space-y-0.5">
+          <h2 className="text-sm font-semibold text-neutral-900">Costs by period</h2>
+          <p className="text-xs text-neutral-600">Grouped by: {costsGroupBy}</p>
+        </div>
+
+        <div className="mt-4">
+          <CostsByPeriodChart points={costsByPeriodPoints} groupBy={costsGroupBy} />
         </div>
       </section>
 
