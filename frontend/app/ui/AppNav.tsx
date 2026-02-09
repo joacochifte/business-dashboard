@@ -15,6 +15,7 @@ const defaultLinks: NavLink[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/products", label: "Products" },
   { href: "/sales", label: "Sales" },
+  { href: "/costs", label: "Costs" },
   { href: "/inventory", label: "Inventory" },
 ];
 
@@ -32,4 +33,3 @@ export default function AppNav({ className, links = defaultLinks }: Props) {
     </nav>
   );
 }
-
