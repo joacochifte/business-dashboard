@@ -4,6 +4,7 @@ using BusinessDashboard.Infrastructure.Repositories;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Application.Inventory;
 using BusinessDashboard.Application.Dashboard;  
+using BusinessDashboard.Application.Costs;
 
 namespace BusinessDashboard.Api.Extensions;
 
@@ -17,8 +18,9 @@ public static class ServiceFactory
         services.AddScoped<ISalesService, SalesService>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IInventoryService, InventoryService>();
-        services.AddScoped<IDashboardService, DashboardService>();
-
+        services.AddScoped<ICostRepository, CostRepository>();
+        services.AddScoped<ICostService, CostService>();
+        services.AddScoped<IDashboardService, DashboardService>();  
         return services;
     }
 }
