@@ -240,11 +240,19 @@ export default async function DashboardPage({ searchParams }: Props) {
         </form>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-3">
+      <section className="mt-6 grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="text-xs font-medium text-neutral-600">Revenue total</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.revenueTotal)}</div>
           <div className="mt-1 text-xs text-neutral-500">In selected period</div>
+        </div>
+
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+          <div className="text-xs font-medium text-neutral-600">Gains</div>
+          <div className={`mt-2 text-2xl font-semibold tabular-nums ${summary.gains < 0 ? "text-red-700" : "text-emerald-700"}`}>
+            {formatMoney(summary.gains)}
+          </div>
+          <div className="mt-1 text-xs text-neutral-500">Revenue - costs</div>
         </div>
 
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">

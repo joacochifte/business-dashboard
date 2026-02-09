@@ -1,4 +1,5 @@
 using BusinessDashboard.Infrastructure.Persistence;
+using BusinessDashboard.Domain.Costs;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Infrastructure.Dashboard;
 using Microsoft.EntityFrameworkCore;
@@ -16,15 +17,19 @@ public sealed class DashboardService : IDashboardService
 
     public async Task<DashboardSummaryDto> GetSummaryAsync(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
     {
-        var query = ApplySalesFilter(_db.Sales.AsNoTracking(), from, to);
+        var salesQuery = ApplySalesFilter(_db.Sales.AsNoTracking(), from, to);
+        var costsQuery = ApplyCostsFilter(_db.Costs.AsNoTracking(), from, to);
 
-        var salesCount = await query.CountAsync(ct);
-        var revenueTotal = await query.SumAsync(s => (decimal?)s.Total, ct) ?? 0m;
+        var salesCount = await salesQuery.CountAsync(ct);
+        var revenueTotal = await salesQuery.SumAsync(s => (decimal?)s.Total, ct) ?? 0m;
+        var costsTotal = await costsQuery.SumAsync(c => (decimal?)c.Amount, ct) ?? 0m;
+        var gains = revenueTotal - costsTotal;
         var avgTicket = salesCount == 0 ? 0m : revenueTotal / salesCount;
 
         return new DashboardSummaryDto
         {
             RevenueTotal = revenueTotal,
+            Gains = gains,
             SalesCount = salesCount,
             AvgTicket = avgTicket
         };
@@ -103,6 +108,17 @@ public sealed class DashboardService : IDashboardService
 
         if (to is not null)
             query = query.Where(s => s.CreatedAt <= to.Value);
+
+        return query;
+    }
+
+    private static IQueryable<Cost> ApplyCostsFilter(IQueryable<Cost> query, DateTime? from, DateTime? to)
+    {
+        if (from is not null)
+            query = query.Where(c => c.DateIncurred >= from.Value);
+
+        if (to is not null)
+            query = query.Where(c => c.DateIncurred <= to.Value);
 
         return query;
     }

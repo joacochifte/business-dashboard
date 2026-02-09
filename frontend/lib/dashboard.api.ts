@@ -3,6 +3,7 @@ import type { IsoDateTime } from "@/lib/api";
 
 export type DashboardSummaryDto = {
   revenueTotal: number;
+  gains: number;
   salesCount: number;
   avgTicket: number;
 };
