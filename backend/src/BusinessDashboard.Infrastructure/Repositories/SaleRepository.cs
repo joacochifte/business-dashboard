@@ -61,6 +61,25 @@ public sealed class SaleRepository : ISaleRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateAsync(Sale sale, IReadOnlyList<InventoryMovement> movements, CancellationToken ct = default)
+    {
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        try
+        {
+            _db.Sales.Update(sale);
+            if (movements.Count > 0)
+                _db.InventoryMovements.AddRange(movements);
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
+
     public async Task DeleteAsync(Guid saleId, CancellationToken ct = default)
     {
         var sale = await GetByIdInternalAsync(saleId, ct);

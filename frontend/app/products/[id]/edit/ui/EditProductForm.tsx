@@ -1,5 +1,6 @@
 "use client";
 
+import { updateProduct } from "@/lib/products.api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -41,8 +42,6 @@ export default function EditProductForm({ product }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
   const clientValidationError = useMemo(() => {
     if (!form.name.trim()) return "Name is required.";
 
@@ -62,11 +61,6 @@ export default function EditProductForm({ product }: Props) {
     e.preventDefault();
     setError(null);
 
-    if (!apiBaseUrl) {
-      setError("Missing NEXT_PUBLIC_API_BASE_URL. Check frontend/.env.local and restart npm run dev.");
-      return;
-    }
-
     if (clientValidationError) {
       setError(clientValidationError);
       return;
@@ -74,25 +68,14 @@ export default function EditProductForm({ product }: Props) {
 
     setSubmitting(true);
     try {
-      const payload = {
+      await updateProduct(product.id, {
         id: product.id,
         name: form.name.trim(),
         description: form.description.trim() ? form.description.trim() : null,
         price: Number(form.price),
         stock: form.trackStock ? Number(form.stock) : null,
         isActive: form.isActive,
-      };
-
-      const res = await fetch(`${apiBaseUrl}/products/${product.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Request failed: ${res.status}`);
-      }
 
       router.push("/products");
       router.refresh();

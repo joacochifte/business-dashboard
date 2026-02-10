@@ -50,6 +50,7 @@ public sealed class SalesService : ISalesService
     public async Task UpdateSaleAsync(Guid saleId, SaleUpdateDto request, CancellationToken ct = default)
     {
         var sale = await _saleRepo.GetByIdAsync(saleId);
+        var oldItems = sale.Items.ToList();
         var items = CreateItemsFromRequest(request.Items).ToList();
 
         sale.ReplaceItems(items);
@@ -57,10 +58,11 @@ public sealed class SalesService : ISalesService
         if (request.Total > 0 && request.Total != sale.Total)
             throw new BusinessRuleException("Total mismatch.");
 
+        var movements = await AdjustStockForSaleUpdateAndCreateMovements(oldItems, items, DateTime.UtcNow, ct);
         sale.SetCustomerName(request.CustomerName);
         sale.SetPaymentMethod(request.PaymentMethod);
 
-        await _saleRepo.UpdateAsync(sale, ct);
+        await _saleRepo.UpdateAsync(sale, movements, ct);
     }
 
     private static IEnumerable<SaleItem> CreateItemsFromRequest(IEnumerable<SaleItemDto> items)
@@ -106,6 +108,59 @@ public sealed class SalesService : ISalesService
                 type: InventoryMovementType.Out,
                 reason: InventoryMovementReason.Sale,
                 quantity: entry.Quantity,
+                createdAt: createdAt
+            ));
+        }
+
+        return movements;
+    }
+
+    private async Task<IReadOnlyList<InventoryMovement>> AdjustStockForSaleUpdateAndCreateMovements(
+        IReadOnlyList<SaleItem> oldItems,
+        IReadOnlyList<SaleItem> newItems,
+        DateTime createdAt,
+        CancellationToken ct = default)
+    {
+        var movements = new List<InventoryMovement>();
+
+        var oldByProduct = oldItems
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+        var newByProduct = newItems
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Quantity));
+
+        var productIds = oldByProduct.Keys.Union(newByProduct.Keys);
+
+        foreach (var productId in productIds)
+        {
+            var oldQty = oldByProduct.GetValueOrDefault(productId, 0);
+            var newQty = newByProduct.GetValueOrDefault(productId, 0);
+            var delta = newQty - oldQty;
+
+            if (delta == 0)
+                continue;
+
+            var product = await _productRepo.GetByIdAsync(productId);
+
+            // If quantity increased, treat it like a sale and enforce active/stock rules.
+            if (delta > 0)
+                IsProductActive(product);
+
+            if (product.Stock is null)
+                continue;
+
+            if (delta > 0 && product.Stock.Value < delta)
+                throw new BusinessRuleException($"Insufficient stock for product {product.Name}.");
+
+            product.AdjustStock(-delta);
+
+            movements.Add(new InventoryMovement(
+                productId: productId,
+                type: delta > 0 ? InventoryMovementType.Out : InventoryMovementType.In,
+                reason: InventoryMovementReason.Sale,
+                quantity: Math.Abs(delta),
                 createdAt: createdAt
             ));
         }

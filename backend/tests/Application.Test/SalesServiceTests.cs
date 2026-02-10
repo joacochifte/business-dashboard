@@ -166,22 +166,26 @@ public class SalesServiceTests
     public async Task UpdateSaleAsync_ShouldUpdateAndPersist()
     {
         var saleId = Guid.NewGuid();
-        var originalProductId = Guid.NewGuid();
-        var updatedProductId = Guid.NewGuid();
-        var sale = new Sale(new[] { new SaleItem(originalProductId, 1, 50m) });
+        var productId = Guid.NewGuid();
+        var sale = new Sale(new[] { new SaleItem(productId, 1, 50m) });
         var request = new SaleUpdateDto
         {
             Items = new List<SaleItemDto>
             {
-                new SaleItemDto { ProductId = updatedProductId, Quantity = 2, UnitPrice = 20m }
+                new SaleItemDto { ProductId = productId, Quantity = 2, UnitPrice = 20m }
             },
             Total = 40m,
             CustomerName = "Juan",
             PaymentMethod = "Cash"
         };
 
+        _products.Setup(r => r.GetByIdAsync(productId)).ReturnsAsync(new Product("P1", 10m, initialStock: 10));
         _repo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
-        _repo.Setup(r => r.UpdateAsync(sale, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        IReadOnlyList<InventoryMovement>? capturedMovements = null;
+        _repo
+            .Setup(r => r.UpdateAsync(sale, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, IReadOnlyList<InventoryMovement>, CancellationToken>((_, m, _) => capturedMovements = m)
+            .Returns(Task.CompletedTask);
 
         await _service.UpdateSaleAsync(saleId, request);
 
@@ -189,8 +193,14 @@ public class SalesServiceTests
         Assert.AreEqual("Cash", sale.PaymentMethod);
         Assert.AreEqual(40m, sale.Total);
         Assert.AreEqual(1, sale.Items.Count);
-        Assert.AreEqual(updatedProductId, sale.Items.First().ProductId);
+        Assert.AreEqual(productId, sale.Items.First().ProductId);
+        Assert.IsNotNull(capturedMovements);
+        Assert.AreEqual(1, capturedMovements.Count);
+        Assert.AreEqual(InventoryMovementType.Out, capturedMovements[0].Type);
+        Assert.AreEqual(InventoryMovementReason.Sale, capturedMovements[0].Reason);
+        Assert.AreEqual(1, capturedMovements[0].Quantity);
         _repo.Verify(r => r.GetByIdAsync(saleId), Times.Once);
-        _repo.Verify(r => r.UpdateAsync(sale, It.IsAny<CancellationToken>()), Times.Once);
+        _products.Verify(r => r.GetByIdAsync(productId), Times.Once);
+        _repo.Verify(r => r.UpdateAsync(sale, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
