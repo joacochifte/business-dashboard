@@ -3,6 +3,7 @@ namespace BusinessDashboard.Infrastructure.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using BusinessDashboard.Domain.Common.Exceptions;
 using BusinessDashboard.Domain.Costs;
 using BusinessDashboard.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +38,7 @@ public class CostRepository : ICostRepository
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
         if (cost == null)
-            throw new KeyNotFoundException($"Cost with ID {id} not found.");
+            throw new NotFoundException("Cost", id.ToString());
 
         return cost;
     }

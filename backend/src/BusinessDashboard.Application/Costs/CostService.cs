@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using BusinessDashboard.Domain.Common.Exceptions;
 using BusinessDashboard.Domain.Costs;
 using BusinessDashboard.Infrastructure.Costs;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
@@ -49,7 +50,7 @@ public class CostService : ICostService
     {
         var existingCost = await _db.GetCostByIdAsync(id, cancellationToken);
         if (existingCost == null)
-            throw new KeyNotFoundException($"Cost with ID {id} not found.");
+            throw new NotFoundException("Cost", id.ToString());
 
         existingCost.Name = costDto.Name;
         existingCost.Amount = costDto.Amount;

@@ -42,6 +42,7 @@ public sealed class ExceptionHandlingMiddleware
         {
             BusinessRuleException => (StatusCodes.Status400BadRequest, "Bad Request"),
             NotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
+            KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
 
             // Back-compat: until everything is migrated to custom exceptions.
             ArgumentOutOfRangeException => (StatusCodes.Status400BadRequest, "Bad Request"),
