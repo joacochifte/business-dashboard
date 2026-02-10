@@ -188,12 +188,16 @@ export default function EditSaleForm({ sale }: Props) {
 
         <label className="grid gap-1">
           <span className="text-sm font-medium text-neutral-800">Payment method</span>
-          <input
+          <select
             value={form.paymentMethod}
             onChange={(e) => setForm((s) => ({ ...s, paymentMethod: e.target.value }))}
             className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
-            placeholder="Cash, card..."
-          />
+          >
+            <option value="">Select payment method</option>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="Transfer">Transfer</option>
+          </select>
         </label>
       </div>
 
@@ -245,7 +249,7 @@ export default function EditSaleForm({ sale }: Props) {
                 <input
                   value={it.quantity}
                   onChange={(e) => setItem(idx, { quantity: e.target.value })}
-                  className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+                  className="w-full max-w-[88px] rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
                   inputMode="numeric"
                   placeholder="1"
                 />
