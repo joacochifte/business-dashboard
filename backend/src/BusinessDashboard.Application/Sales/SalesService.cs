@@ -32,7 +32,9 @@ public sealed class SalesService : ISalesService
 
     public async Task DeleteSaleAsync(Guid saleId, CancellationToken ct = default)
     {
-        await _saleRepo.DeleteAsync(saleId, ct);
+        var sale = await _saleRepo.GetByIdAsync(saleId);
+        var movements = await RestoreStockAndCreateMovementsForSaleDelete(sale.Items.ToList(), DateTime.UtcNow, ct);
+        await _saleRepo.DeleteAsync(saleId, movements, ct);
     }
 
     public async Task<IEnumerable<SaleDto>> GetAllSalesAsync(CancellationToken ct = default)
@@ -161,6 +163,39 @@ public sealed class SalesService : ISalesService
                 type: delta > 0 ? InventoryMovementType.Out : InventoryMovementType.In,
                 reason: InventoryMovementReason.Sale,
                 quantity: Math.Abs(delta),
+                createdAt: createdAt
+            ));
+        }
+
+        return movements;
+    }
+
+    private async Task<IReadOnlyList<InventoryMovement>> RestoreStockAndCreateMovementsForSaleDelete(
+        IReadOnlyList<SaleItem> items,
+        DateTime createdAt,
+        CancellationToken ct = default)
+    {
+        var movements = new List<InventoryMovement>();
+
+        var perProduct = items
+            .GroupBy(i => i.ProductId)
+            .Select(g => new { ProductId = g.Key, Quantity = g.Sum(x => x.Quantity) });
+
+        foreach (var entry in perProduct)
+        {
+            var product = await _productRepo.GetByIdAsync(entry.ProductId);
+
+            // Products with Stock == null do not track inventory.
+            if (product.Stock is null)
+                continue;
+
+            product.AdjustStock(entry.Quantity);
+
+            movements.Add(new InventoryMovement(
+                productId: entry.ProductId,
+                type: InventoryMovementType.In,
+                reason: InventoryMovementReason.Sale,
+                quantity: entry.Quantity,
                 createdAt: createdAt
             ));
         }

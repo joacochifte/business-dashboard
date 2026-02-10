@@ -12,4 +12,5 @@ public interface ISaleRepository
     Task UpdateAsync(Sale sale, CancellationToken ct = default);
     Task UpdateAsync(Sale sale, IReadOnlyList<InventoryMovement> movements, CancellationToken ct = default);
     Task DeleteAsync(Guid saleId, CancellationToken ct = default);
+    Task DeleteAsync(Guid saleId, IReadOnlyList<InventoryMovement> movements, CancellationToken ct = default);
 }

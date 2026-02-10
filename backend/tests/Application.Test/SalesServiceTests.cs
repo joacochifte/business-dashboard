@@ -155,11 +155,31 @@ public class SalesServiceTests
     public async Task DeleteSaleAsync_ShouldCallRepository()
     {
         var id = Guid.NewGuid();
-        _repo.Setup(r => r.DeleteAsync(id, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        var productId = Guid.NewGuid();
+        var sale = new Sale(new[] { new SaleItem(productId, 2, 10m) });
+        var product = new Product("P1", 10m, initialStock: 5);
+
+        _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(sale);
+        _products.Setup(r => r.GetByIdAsync(productId)).ReturnsAsync(product);
+
+        IReadOnlyList<InventoryMovement>? capturedMovements = null;
+        _repo
+            .Setup(r => r.DeleteAsync(id, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Callback<Guid, IReadOnlyList<InventoryMovement>, CancellationToken>((_, m, _) => capturedMovements = m)
+            .Returns(Task.CompletedTask);
 
         await _service.DeleteSaleAsync(id);
 
-        _repo.Verify(r => r.DeleteAsync(id, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.AreEqual(7, product.Stock);
+        Assert.IsNotNull(capturedMovements);
+        Assert.AreEqual(1, capturedMovements.Count);
+        Assert.AreEqual(InventoryMovementType.In, capturedMovements[0].Type);
+        Assert.AreEqual(InventoryMovementReason.Sale, capturedMovements[0].Reason);
+        Assert.AreEqual(2, capturedMovements[0].Quantity);
+
+        _repo.Verify(r => r.GetByIdAsync(id), Times.Once);
+        _products.Verify(r => r.GetByIdAsync(productId), Times.Once);
+        _repo.Verify(r => r.DeleteAsync(id, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [TestMethod]
