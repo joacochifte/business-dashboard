@@ -166,9 +166,16 @@ public class SalesServiceTests
     public async Task UpdateSaleAsync_ShouldUpdateAndPersist()
     {
         var saleId = Guid.NewGuid();
-        var sale = new Sale(new[] { new SaleItem(Guid.NewGuid(), 1, 50m) });
+        var originalProductId = Guid.NewGuid();
+        var updatedProductId = Guid.NewGuid();
+        var sale = new Sale(new[] { new SaleItem(originalProductId, 1, 50m) });
         var request = new SaleUpdateDto
         {
+            Items = new List<SaleItemDto>
+            {
+                new SaleItemDto { ProductId = updatedProductId, Quantity = 2, UnitPrice = 20m }
+            },
+            Total = 40m,
             CustomerName = "Juan",
             PaymentMethod = "Cash"
         };
@@ -180,6 +187,9 @@ public class SalesServiceTests
 
         Assert.AreEqual("Juan", sale.CustomerName);
         Assert.AreEqual("Cash", sale.PaymentMethod);
+        Assert.AreEqual(40m, sale.Total);
+        Assert.AreEqual(1, sale.Items.Count);
+        Assert.AreEqual(updatedProductId, sale.Items.First().ProductId);
         _repo.Verify(r => r.GetByIdAsync(saleId), Times.Once);
         _repo.Verify(r => r.UpdateAsync(sale, It.IsAny<CancellationToken>()), Times.Once);
     }

@@ -50,6 +50,12 @@ public sealed class SalesService : ISalesService
     public async Task UpdateSaleAsync(Guid saleId, SaleUpdateDto request, CancellationToken ct = default)
     {
         var sale = await _saleRepo.GetByIdAsync(saleId);
+        var items = CreateItemsFromRequest(request.Items).ToList();
+
+        sale.ReplaceItems(items);
+
+        if (request.Total > 0 && request.Total != sale.Total)
+            throw new BusinessRuleException("Total mismatch.");
 
         sale.SetCustomerName(request.CustomerName);
         sale.SetPaymentMethod(request.PaymentMethod);

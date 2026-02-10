@@ -48,6 +48,16 @@ public class Sale : Entity
         RecalculateTotal();
     }
 
+    public void ReplaceItems(IEnumerable<SaleItem> items)
+    {
+        if (items == null || !items.Any())
+            throw new InvalidOperationException("A sale must have at least one item.");
+
+        _items.Clear();
+        _items.AddRange(items);
+        RecalculateTotal();
+    }
+
     private void RecalculateTotal()
     {
         Total = _items.Sum(i => i.LineTotal);

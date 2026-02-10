@@ -44,6 +44,26 @@ public class SaleTests
     }
 
     [TestMethod]
+    public void ReplaceItems_ShouldReplaceCollectionAndRecalculateTotal()
+    {
+        var sale = new Sale(new List<SaleItem>
+        {
+            new SaleItem(Guid.NewGuid(), 1, 100m)
+        });
+
+        var replacement = new List<SaleItem>
+        {
+            new SaleItem(Guid.NewGuid(), 2, 50m),
+            new SaleItem(Guid.NewGuid(), 1, 25m)
+        };
+
+        sale.ReplaceItems(replacement);
+
+        Assert.AreEqual(125m, sale.Total);
+        Assert.AreEqual(2, sale.Items.Count);
+    }
+
+    [TestMethod]
     public void Items_ShouldBeReadOnly()
     {
         var items = new List<SaleItem>
