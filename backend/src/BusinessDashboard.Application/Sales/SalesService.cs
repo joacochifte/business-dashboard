@@ -40,7 +40,7 @@ public sealed class SalesService : ISalesService
     public async Task<IEnumerable<SaleDto>> GetAllSalesAsync(CancellationToken ct = default)
     {
         var sales = await _saleRepo.GetAllAsync();
-        return sales.Select(MapToDto);
+        return sales.Select(MapToDto).OrderByDescending(s => s.CreatedAt);
     }
 
     public async Task<SaleDto> GetSaleByIdAsync(Guid saleId, CancellationToken ct = default)

@@ -173,6 +173,18 @@ export default function HomePage() {
                     </svg>
                   }
                 />
+                <FeatureCard
+                  href="/costs"
+                  kicker="Catalog"
+                  title="Costs"
+                  description="Create, edit and delete costs."
+                  icon={
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 text-neutral-900" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M7 7h10v10H7z" />
+                      <path d="M7 7l5-3 5 3" />
+                    </svg>
+                  }
+                />
               </div>
             </div>
           </div>
