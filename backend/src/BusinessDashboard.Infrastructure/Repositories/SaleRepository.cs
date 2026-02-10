@@ -57,7 +57,8 @@ public sealed class SaleRepository : ISaleRepository
 
     public async Task UpdateAsync(Sale sale, CancellationToken ct = default)
     {
-        _db.Sales.Update(sale);
+        // Sale is loaded by this DbContext (tracked), so changes are already detected.
+        EnsureUpdatedItemsAreAdded(sale);
         await _db.SaveChangesAsync(ct);
     }
 
@@ -66,7 +67,8 @@ public sealed class SaleRepository : ISaleRepository
         await using var tx = await _db.Database.BeginTransactionAsync(ct);
         try
         {
-            _db.Sales.Update(sale);
+            // Sale is loaded by this DbContext (tracked), so changes are already detected.
+            EnsureUpdatedItemsAreAdded(sale);
             if (movements.Count > 0)
                 _db.InventoryMovements.AddRange(movements);
 
@@ -77,6 +79,16 @@ public sealed class SaleRepository : ISaleRepository
         {
             await tx.RollbackAsync(ct);
             throw;
+        }
+    }
+
+    private void EnsureUpdatedItemsAreAdded(Sale sale)
+    {
+        foreach (var item in sale.Items)
+        {
+            var entry = _db.Entry(item);
+            if (entry.State == EntityState.Detached || entry.State == EntityState.Unchanged || entry.State == EntityState.Modified)
+                entry.State = EntityState.Added;
         }
     }
 
