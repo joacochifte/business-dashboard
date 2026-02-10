@@ -33,7 +33,6 @@ public class InventoryService : IInventoryService
             createdAt: DateTime.UtcNow
         );
 
-        await _products.UpdateAsync(product, ct);
-        await _movements.AddAsync(movement, ct);
+        await _products.UpdateAsync(product, new[] { movement }, ct);
     }
 }
