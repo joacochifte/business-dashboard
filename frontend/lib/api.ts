@@ -47,8 +47,10 @@ function joinUrl(baseUrl: string, path: string) {
 }
 
 export function getApiBaseUrl(): string {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!baseUrl) throw makeApiError("Missing NEXT_PUBLIC_API_BASE_URL");
+  const browserBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+  const serverBase = process.env.API_BASE_URL_INTERNAL ?? browserBase;
+  const baseUrl = typeof window === "undefined" ? serverBase : browserBase;
+  if (!baseUrl) throw makeApiError("Missing API base URL");
   return baseUrl;
 }
 

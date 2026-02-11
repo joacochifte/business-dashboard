@@ -13,7 +13,40 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d business_dashboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
+  backend:
+    build:
+      context: .
+      dockerfile: backend/src/BusinessDashboard.Api/Dockerfile
+    container_name: business-dashboard-backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=business_dashboard;Username=postgres;Password=postgres
+    ports:
+      - "5126:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:5126
+    container_name: business-dashboard-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:5126
+      API_BASE_URL_INTERNAL: http://backend:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
