@@ -3,16 +3,16 @@ services:
     image: postgres:16
     container_name: business-dashboard-postgres
     environment:
-      POSTGRES_DB: business_dashboard
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       TZ: UTC
     ports:
-      - "5433:5432"
+      - "${POSTGRES_HOST_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d business_dashboard"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -23,10 +23,10 @@ services:
       dockerfile: backend/src/BusinessDashboard.Api/Dockerfile
     container_name: business-dashboard-backend
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=business_dashboard;Username=postgres;Password=postgres
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
     ports:
-      - "5126:8080"
+      - "${BACKEND_HOST_PORT}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,13 +36,13 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://localhost:5126
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
     container_name: business-dashboard-frontend
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:5126
-      API_BASE_URL_INTERNAL: http://backend:8080
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+      API_BASE_URL_INTERNAL: ${API_BASE_URL_INTERNAL}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_HOST_PORT}:3000"
     depends_on:
       - backend
 

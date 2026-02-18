@@ -8,3 +8,5 @@
 # Env files
 .env
 .env.*
+!.env.local.example
+!frontend/.env.local.example

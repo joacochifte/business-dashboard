@@ -23,7 +23,9 @@ function toNumber(v: string) {
 }
 
 function toIsoFromDateInput(dateIncurred: string) {
-  return `${dateIncurred}T00:00:00Z`;
+  const [y, m, d] = dateIncurred.split("-").map(Number);
+  const localMidnight = new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
+  return localMidnight.toISOString();
 }
 
 function toDateInputValue(iso: string) {
@@ -144,4 +146,3 @@ export default function EditCostForm({ cost }: Props) {
     </form>
   );
 }
-

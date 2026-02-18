@@ -9,13 +9,24 @@ type Props = {
   variant?: Variant;
   className?: string;
   fallback?: string;
+  parseDateOnly?: boolean;
 };
 
-export default function ClientDateTime({ iso, variant = "datetime", className, fallback }: Props) {
+export default function ClientDateTime({
+  iso,
+  variant = "datetime",
+  className,
+  fallback,
+  parseDateOnly,
+}: Props) {
   const [text, setText] = useState(fallback ?? "...");
 
   useEffect(() => {
-    const d = new Date(iso);
+    let d = new Date(iso);
+    if (parseDateOnly) {
+      const [y, m, day] = iso.slice(0, 10).split("-").map(Number);
+      d = new Date(y, (m ?? 1) - 1, day ?? 1, 0, 0, 0, 0);
+    }
     if (Number.isNaN(d.getTime())) {
       setText(fallback ?? iso);
       return;
