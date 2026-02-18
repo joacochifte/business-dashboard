@@ -10,20 +10,30 @@ public sealed class SalesService : ISalesService
 {
     private readonly ISaleRepository _saleRepo;
     private readonly IProductRepository _productRepo;
+    private readonly ICustomerRepository _customerRepo;
 
-    public SalesService(ISaleRepository saleRepo, IProductRepository productRepo)
+    public SalesService(ISaleRepository saleRepo, IProductRepository productRepo, ICustomerRepository customerRepo)
     {
         _saleRepo = saleRepo;
         _productRepo = productRepo;
+        _customerRepo = customerRepo;
     }
 
     public async Task<Guid> CreateSaleAsync(SaleCreationDto request, CancellationToken ct = default)
     {
         var items = CreateItemsFromRequest(request.Items).ToList();
-        var sale = new Sale(items, request.CustomerName, request.PaymentMethod);
+        var sale = new Sale(items, request.CustomerId, request.PaymentMethod);
 
         if (request.Total > 0 && request.Total != sale.Total)
             throw new BusinessRuleException("Total mismatch.");
+
+        if (request.CustomerId.HasValue)
+        {
+            var customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value, ct);
+            sale.SetCustomer(customer);
+            customer.UpdateLastPurchaseDate(sale.CreatedAt, sale.Total);
+            await _customerRepo.UpdateAsync(customer, ct);
+        }
 
         var movements = await AdjustStockAndCreateMovements(items, sale.CreatedAt, ct);
         await _saleRepo.AddAsync(sale, movements, ct);
@@ -61,9 +71,18 @@ public sealed class SalesService : ISalesService
             throw new BusinessRuleException("Total mismatch.");
 
         var movements = await AdjustStockForSaleUpdateAndCreateMovements(oldItems, items, DateTime.UtcNow, ct);
-        sale.SetCustomerName(request.CustomerName);
-        sale.SetPaymentMethod(request.PaymentMethod);
 
+        if (request.CustomerId.HasValue)
+        {
+            var customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value, ct);
+            sale.SetCustomer(customer);
+        }
+        else
+        {
+            sale.SetCustomer(null);
+        }
+
+        sale.SetPaymentMethod(request.PaymentMethod);
         await _saleRepo.UpdateAsync(sale, movements, ct);
     }
 
@@ -212,8 +231,8 @@ public sealed class SalesService : ISalesService
                 ProductId = i.ProductId,
                 Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice
-
             }).ToList(),
+            CustomerId = sale.CustomerId,
             CustomerName = sale.CustomerName,
             PaymentMethod = sale.PaymentMethod,
             Total = sale.Total,

@@ -1,4 +1,5 @@
 using BusinessDashboard.Domain.Common;
+using BusinessDashboard.Domain.Customers;
 
 namespace BusinessDashboard.Domain.Sales;
 
@@ -11,17 +12,19 @@ public class Sale : Entity
     public IReadOnlyCollection<SaleItem> Items => _items.AsReadOnly();
 
     public decimal Total { get; private set; }
-    public string? CustomerName { get; private set; }
+    public Guid? CustomerId { get; private set; }
+    public Customer? Customer { get; private set; }
+    public string? CustomerName {get; private set; }
     public string? PaymentMethod { get; private set; }
 
     private Sale() { }
 
-    public Sale(IEnumerable<SaleItem> items, string? customerName = null, string? paymentMethod = null)
+    public Sale(IEnumerable<SaleItem> items, Guid? customerId = null, string? paymentMethod = null)
     {
         if (items == null || !items.Any())
             throw new InvalidOperationException("A sale must have at least one item.");
 
-        CustomerName = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
+        CustomerId = customerId;
         PaymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? null : paymentMethod.Trim();
 
         foreach (var item in items)
@@ -30,9 +33,10 @@ public class Sale : Entity
         }
     }
 
-    public void SetCustomerName(string? customerName)
+    public void SetCustomer(Customer? customer)
     {
-        CustomerName = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
+        Customer = customer;
+        CustomerId = customer?.Id;
     }
 
     public void SetPaymentMethod(string? paymentMethod)

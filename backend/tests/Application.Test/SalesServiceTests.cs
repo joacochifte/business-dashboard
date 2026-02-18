@@ -14,6 +14,7 @@ public class SalesServiceTests
 {
     private Mock<ISaleRepository> _repo = null!;
     private Mock<IProductRepository> _products = null!;
+    private Mock<ICustomerRepository> _customers = null!;
     private SalesService _service = null!;
 
     [TestInitialize]
@@ -21,7 +22,8 @@ public class SalesServiceTests
     {
         _repo = new Mock<ISaleRepository>(MockBehavior.Strict);
         _products = new Mock<IProductRepository>(MockBehavior.Strict);
-        _service = new SalesService(_repo.Object, _products.Object);
+        _customers = new Mock<ICustomerRepository>(MockBehavior.Strict);
+        _service = new SalesService(_repo.Object, _products.Object, _customers.Object);
     }
 
     [TestMethod]
@@ -128,8 +130,10 @@ public class SalesServiceTests
         var result = (await _service.GetAllSalesAsync()).ToList();
 
         Assert.AreEqual(2, result.Count);
-        Assert.AreEqual(sales[0].Total, result[0].Total);
-        Assert.AreEqual(sales[1].Total, result[1].Total);
+        CollectionAssert.AreEquivalent(
+            sales.Select(s => s.Total).ToList(),
+            result.Select(r => r.Total).ToList()
+        );
 
         _repo.Verify(r => r.GetAllAsync(), Times.Once);
     }
@@ -195,7 +199,7 @@ public class SalesServiceTests
                 new SaleItemDto { ProductId = productId, Quantity = 2, UnitPrice = 20m }
             },
             Total = 40m,
-            CustomerName = "Juan",
+            CustomerId = null,
             PaymentMethod = "Cash"
         };
 
@@ -209,7 +213,7 @@ public class SalesServiceTests
 
         await _service.UpdateSaleAsync(saleId, request);
 
-        Assert.AreEqual("Juan", sale.CustomerName);
+        Assert.IsNull(sale.CustomerName);
         Assert.AreEqual("Cash", sale.PaymentMethod);
         Assert.AreEqual(40m, sale.Total);
         Assert.AreEqual(1, sale.Items.Count);

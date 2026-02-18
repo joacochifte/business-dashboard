@@ -19,8 +19,14 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
             .HasColumnType("numeric(18,2)")
             .IsRequired();
 
-        builder.Property(s => s.CustomerName)
-            .HasMaxLength(200);
+        builder.Property(s => s.CustomerId);
+
+        builder.HasOne(s => s.Customer)
+            .WithMany()
+            .HasForeignKey(s => s.CustomerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Ignore(s => s.CustomerName);
 
         builder.Property(s => s.PaymentMethod)
             .HasMaxLength(50);
