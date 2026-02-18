@@ -3,6 +3,7 @@ using BusinessDashboard.Domain.Products;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Domain.Costs;
 using BusinessDashboard.Domain.Customers;
+using BusinessDashboard.Domain.Notifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace BusinessDashboard.Infrastructure.Persistence;
@@ -17,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<Cost> Costs => Set<Cost>();
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

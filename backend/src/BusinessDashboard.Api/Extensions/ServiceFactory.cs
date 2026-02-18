@@ -6,6 +6,8 @@ using BusinessDashboard.Application.Inventory;
 using BusinessDashboard.Application.Dashboard;  
 using BusinessDashboard.Application.Costs;
 using BusinessDashboard.Application.Customers;
+using BusinessDashboard.Application.Notifications;
+using BusinessDashboard.Infrastructure.Jobs;
 
 namespace BusinessDashboard.Api.Extensions;
 
@@ -24,6 +26,9 @@ public static class ServiceFactory
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddHostedService<BirthdayNotificationJob>();
         return services;
     }
 }
