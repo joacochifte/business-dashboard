@@ -61,6 +61,12 @@ public class Customer : Entity
         TotalLifetimeValue += purchaseAmount;
     }
 
+    public void RemovePurchase(decimal purchaseAmount)
+    {
+        TotalPurchases = Math.Max(0, TotalPurchases - 1);
+        TotalLifetimeValue = Math.Max(0, TotalLifetimeValue - purchaseAmount);
+    }
+
     private static bool IsValidEmail(string email)
     {
         try

@@ -1,4 +1,4 @@
-import { getDashboardSummary, getSalesByPeriod, getTopProducts } from "@/lib/dashboard.api";
+import { getDashboardSummary, getSalesByPeriod, getTopProducts, getSalesByCustomer, getSpendingByCustomer } from "@/lib/dashboard.api";
 import { getCosts, type CostSummaryDto } from "@/lib/costs.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
 import CostsByPeriodChart from "./ui/CostsByPeriodChart";
@@ -89,6 +89,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const tzOffsetRaw = pickFirst(sp.tzOffset);
   const tzOffsetMinutes =
     tzOffsetRaw === undefined ? clampTzOffsetMinutes(now.getTimezoneOffset()) : clampTzOffsetMinutes(Number(tzOffsetRaw) || 0);
+  const topProductsSortBy = (pickFirst(sp.topProductsSortBy) as "revenue" | "quantity" | undefined) ?? "revenue";
 
   const ym = pickFirst(sp.ym); // legacy "YYYY-MM"
   const y = pickFirst(sp.y); // "YYYY"
@@ -150,11 +151,13 @@ export default async function DashboardPage({ searchParams }: Props) {
               groupBy: "day" as const,
             };
 
-  const [summary, byPeriod, topProducts, costs] = await Promise.all([
+  const [summary, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer] = await Promise.all([
     getDashboardSummary({ from: range.from, to: range.to }),
     getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to }),
-    getTopProducts({ limit: 10, from: range.from, to: range.to }),
+    getTopProducts({ limit: 10, from: range.from, to: range.to, sortBy: topProductsSortBy }),
     getCosts({ startDate: range.from, endDate: range.to }),
+    getSalesByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
+    getSpendingByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
   ]);
 
   const points = byPeriod.points ?? [];
@@ -183,7 +186,9 @@ export default async function DashboardPage({ searchParams }: Props) {
             </span>
           </p>
         </div>
-        <AppNav className="hidden md:flex" />
+        <div className="flex items-center gap-2">
+          <AppNav className="hidden md:flex" />
+        </div>
       </header>
 
       <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
@@ -262,6 +267,7 @@ export default async function DashboardPage({ searchParams }: Props) {
               Apply
             </button>
           </div>
+
         </form>
       </section>
 
@@ -356,13 +362,49 @@ export default async function DashboardPage({ searchParams }: Props) {
         </div>
 
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
-          <div className="space-y-0.5">
-            <h2 className="text-sm font-semibold text-neutral-900">Top products</h2>
-            <p className="text-xs text-neutral-600">By revenue</p>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h2 className="text-sm font-semibold text-neutral-900">Top products</h2>
+              <p className="text-xs text-neutral-600">
+                {topProductsSortBy === "quantity" ? "By quantity sold" : "By revenue"}
+              </p>
+            </div>
+            <form method="get" className="flex gap-2">
+              <input type="hidden" name="view" value={mode} />
+              {mode === "daily" && (
+                <>
+                  <input type="hidden" name="year" value={year} />
+                  <input type="hidden" name="month" value={month} />
+                  <input type="hidden" name="day" value={day} />
+                </>
+              )}
+              {mode === "month" && (
+                <>
+                  <input type="hidden" name="year" value={year} />
+                  <input type="hidden" name="month" value={month} />
+                </>
+              )}
+              {mode === "year" && <input type="hidden" name="year" value={year} />}
+              <input type="hidden" name="tzOffset" value={tzOffsetMinutes} />
+              <select
+                name="topProductsSortBy"
+                defaultValue={topProductsSortBy}
+                className="rounded-xl border border-black/10 bg-white/70 px-3 py-1.5 text-xs font-medium text-neutral-800 shadow-sm backdrop-blur transition hover:bg-white/90 focus:border-black/20 focus:outline-none focus:ring-2 focus:ring-black/5"
+              >
+                <option value="revenue">By Revenue</option>
+                <option value="quantity">By Quantity</option>
+              </select>
+              <button
+                type="submit"
+                className="rounded-xl border border-black/10 bg-black px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-black/90"
+              >
+                Apply
+              </button>
+            </form>
           </div>
 
           <div className="mt-4">
-            <TopProductsBarChart data={topProducts} />
+            <TopProductsBarChart data={topProducts} sortBy={topProductsSortBy} />
           </div>
 
           <div className="mt-4 overflow-x-auto rounded-2xl border border-black/10 bg-white/40">
@@ -391,6 +433,82 @@ export default async function DashboardPage({ searchParams }: Props) {
                 ) : null}
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-semibold text-neutral-900">Purchases by customer</h2>
+            <p className="text-xs text-neutral-600">Number of transactions</p>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {salesByCustomer.length === 0 ? (
+              <div className="rounded-2xl border border-black/10 bg-white/50 px-3 py-8 text-center text-sm text-neutral-600">
+                No data yet.
+              </div>
+            ) : (
+              (() => {
+                const maxSales = salesByCustomer.reduce((m, x) => Math.max(m, x.salesCount), 0);
+                return salesByCustomer.map((x) => {
+                  const width = maxSales <= 0 ? 0 : Math.round((x.salesCount / maxSales) * 100);
+                  return (
+                    <div key={x.customerId} className="grid grid-cols-12 items-center gap-3">
+                      <div className="col-span-4 truncate text-xs text-neutral-700">{x.customerName || "—"}</div>
+                      <div className="col-span-6">
+                        <div className="h-2 w-full rounded-full bg-black/5">
+                          <div
+                            className="h-2 rounded-full bg-blue-500/80"
+                            style={{ width: `${width}%` }}
+                            aria-label={`Sales count ${x.salesCount}`}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-span-2 text-right text-xs font-semibold">{x.salesCount}</div>
+                    </div>
+                  );
+                });
+              })()
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-semibold text-neutral-900">Spending by customer</h2>
+            <p className="text-xs text-neutral-600">Total revenue</p>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {spendingByCustomer.length === 0 ? (
+              <div className="rounded-2xl border border-black/10 bg-white/50 px-3 py-8 text-center text-sm text-neutral-600">
+                No data yet.
+              </div>
+            ) : (
+              (() => {
+                const maxSpending = spendingByCustomer.reduce((m, x) => Math.max(m, x.totalSpent), 0);
+                return spendingByCustomer.map((x) => {
+                  const width = maxSpending <= 0 ? 0 : Math.round((x.totalSpent / maxSpending) * 100);
+                  return (
+                    <div key={x.customerId} className="grid grid-cols-12 items-center gap-3">
+                      <div className="col-span-4 truncate text-xs text-neutral-700">{x.customerName || "—"}</div>
+                      <div className="col-span-6">
+                        <div className="h-2 w-full rounded-full bg-black/5">
+                          <div
+                            className="h-2 rounded-full bg-green-500/80"
+                            style={{ width: `${width}%` }}
+                            aria-label={`Total spent ${x.totalSpent}`}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-span-2 text-right text-xs font-semibold tabular-nums">{formatMoney(x.totalSpent)}</div>
+                    </div>
+                  );
+                });
+              })()
+            )}
           </div>
         </div>
       </section>

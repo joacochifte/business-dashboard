@@ -25,6 +25,7 @@ public sealed class SaleRepository : ISaleRepository
     {
         return await _db.Sales
             .Include(s => s.Items)
+            .Include(s => s.Customer)
             .AsNoTracking()
             .OrderBy(s => s.CreatedAt)
             .ToListAsync();
@@ -123,6 +124,7 @@ public sealed class SaleRepository : ISaleRepository
     {
         var sale = await _db.Sales
             .Include(s => s.Items)
+            .Include(s => s.Customer)
             .FirstOrDefaultAsync(s => s.Id == saleId, ct);
         if (sale is null)
             throw new NotFoundException("Sale", saleId.ToString());

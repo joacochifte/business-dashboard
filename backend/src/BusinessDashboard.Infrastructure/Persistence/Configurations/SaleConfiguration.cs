@@ -31,6 +31,10 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.PaymentMethod)
             .HasMaxLength(50);
 
+        builder.Property(s => s.IsDebt)
+            .HasDefaultValue(false)
+            .IsRequired();
+
         builder.HasMany(s => s.Items)
             .WithOne()
             .HasForeignKey("SaleId")

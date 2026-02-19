@@ -22,5 +22,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.IsSeen)
             .IsRequired()
             .HasDefaultValue(false);
+
+        builder.Property(n => n.CustomerId);
     }
 }

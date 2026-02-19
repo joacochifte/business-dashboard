@@ -213,7 +213,7 @@ public class SalesServiceTests
 
         await _service.UpdateSaleAsync(saleId, request);
 
-        Assert.IsNull(sale.CustomerName);
+        Assert.AreEqual("", sale.CustomerName);
         Assert.AreEqual("Cash", sale.PaymentMethod);
         Assert.AreEqual(40m, sale.Total);
         Assert.AreEqual(1, sale.Items.Count);

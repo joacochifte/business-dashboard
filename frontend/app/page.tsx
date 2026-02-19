@@ -19,19 +19,12 @@ export default function HomePage() {
 
       <div className="relative mx-auto max-w-5xl px-6 py-10">
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white/70 shadow-sm backdrop-blur">
-              <span className="text-sm font-semibold tracking-tight text-neutral-900">BD</span>
-            </div>
-            <div className="leading-tight">
-              <div className="text-sm font-semibold text-neutral-900">Business Dashboard</div>
-              <div className="text-xs text-neutral-600">.NET 8 + Next.js</div>
-            </div>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Business Dashboard</h1>
           </div>
-          <AppNav className="hidden md:flex" />
-          <div className="hidden whitespace-nowrap rounded-full border border-black/10 bg-white/70 px-3 py-1.5 text-[10px] font-medium tracking-wide text-neutral-700 shadow-sm backdrop-blur xl:block">
-        Developed by Joaquín Chifteian
-      </div>
+          <div className="flex items-center gap-2">
+            <AppNav className="hidden md:flex" />
+          </div>
         </header>
 
         <section className="mt-16 text-center">
@@ -91,6 +84,19 @@ export default function HomePage() {
             ))}
           </div>
         </section>
+
+        <footer className="mt-10 flex flex-col items-center gap-1 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-9 w-9 place-items-center rounded-xl border border-black/10 bg-white/70 shadow-sm backdrop-blur">
+              <span className="text-sm font-semibold tracking-tight text-neutral-900">BD</span>
+            </div>
+            <div className="leading-tight">
+              <div className="text-sm font-semibold text-neutral-900">Business Dashboard</div>
+              <div className="text-xs text-neutral-600">.NET 8 + Next.js</div>
+            </div>
+          </div>
+          <p className="text-[11px] text-neutral-500">Developed by Joaquín Chifteian</p>
+        </footer>
       </div>
     </main>
   );

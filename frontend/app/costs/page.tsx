@@ -15,8 +15,10 @@ export default async function CostsPage() {
 
   return (
     <PageShell>
-      <header className="flex items-end justify-between gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Costs</h1>
+      <header className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Costs</h1>
+        </div>
         <div className="flex items-center gap-2">
           <AppNav className="hidden md:flex" />
           <Link

@@ -22,6 +22,9 @@ public class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
             .HasColumnType("numeric(18,2)")
             .IsRequired();
 
+        builder.Property(si => si.SpecialPrice)
+            .HasColumnType("numeric(18,2)");
+
         builder.Ignore(si => si.LineTotal);
     }
 }

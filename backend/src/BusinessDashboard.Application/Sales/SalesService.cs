@@ -22,7 +22,7 @@ public sealed class SalesService : ISalesService
     public async Task<Guid> CreateSaleAsync(SaleCreationDto request, CancellationToken ct = default)
     {
         var items = CreateItemsFromRequest(request.Items).ToList();
-        var sale = new Sale(items, request.CustomerId, request.PaymentMethod);
+        var sale = new Sale(items, request.CustomerId, request.PaymentMethod, request.IsDebt);
 
         if (request.Total > 0 && request.Total != sale.Total)
             throw new BusinessRuleException("Total mismatch.");
@@ -43,13 +43,26 @@ public sealed class SalesService : ISalesService
     public async Task DeleteSaleAsync(Guid saleId, CancellationToken ct = default)
     {
         var sale = await _saleRepo.GetByIdAsync(saleId);
+        
+        // Update customer stats if sale had a customer
+        if (sale.CustomerId.HasValue)
+        {
+            var customer = await _customerRepo.GetByIdAsync(sale.CustomerId.Value, ct);
+            customer.RemovePurchase(sale.Total);
+            await _customerRepo.UpdateAsync(customer, ct);
+        }
+        
         var movements = await RestoreStockAndCreateMovementsForSaleDelete(sale.Items.ToList(), DateTime.UtcNow, ct);
         await _saleRepo.DeleteAsync(saleId, movements, ct);
     }
 
-    public async Task<IEnumerable<SaleDto>> GetAllSalesAsync(CancellationToken ct = default)
+    public async Task<IEnumerable<SaleDto>> GetAllSalesAsync(bool? isDebt = null, CancellationToken ct = default)
     {
         var sales = await _saleRepo.GetAllAsync();
+        
+        if (isDebt.HasValue)
+            sales = sales.Where(s => s.IsDebt == isDebt.Value);
+        
         return sales.Select(MapToDto).OrderByDescending(s => s.CreatedAt);
     }
 
@@ -63,6 +76,9 @@ public sealed class SalesService : ISalesService
     {
         var sale = await _saleRepo.GetByIdAsync(saleId);
         var oldItems = sale.Items.ToList();
+        var oldTotal = sale.Total;
+        var oldCustomerId = sale.CustomerId;
+        
         var items = CreateItemsFromRequest(request.Items).ToList();
 
         sale.ReplaceItems(items);
@@ -71,6 +87,30 @@ public sealed class SalesService : ISalesService
             throw new BusinessRuleException("Total mismatch.");
 
         var movements = await AdjustStockForSaleUpdateAndCreateMovements(oldItems, items, DateTime.UtcNow, ct);
+
+        // Update customer stats when customer or total changes
+        var newCustomerId = request.CustomerId;
+        var newTotal = sale.Total;
+        
+        // If customer changed or total changed, update stats
+        if (oldCustomerId != newCustomerId || oldTotal != newTotal)
+        {
+            // Remove from old customer
+            if (oldCustomerId.HasValue)
+            {
+                var oldCustomer = await _customerRepo.GetByIdAsync(oldCustomerId.Value, ct);
+                oldCustomer.RemovePurchase(oldTotal);
+                await _customerRepo.UpdateAsync(oldCustomer, ct);
+            }
+            
+            // Add to new customer
+            if (newCustomerId.HasValue)
+            {
+                var newCustomer = await _customerRepo.GetByIdAsync(newCustomerId.Value, ct);
+                newCustomer.UpdateLastPurchaseDate(sale.CreatedAt, newTotal);
+                await _customerRepo.UpdateAsync(newCustomer, ct);
+            }
+        }
 
         if (request.CustomerId.HasValue)
         {
@@ -83,6 +123,7 @@ public sealed class SalesService : ISalesService
         }
 
         sale.SetPaymentMethod(request.PaymentMethod);
+        sale.SetIsDebt(request.IsDebt);
         await _saleRepo.UpdateAsync(sale, movements, ct);
     }
 
@@ -94,7 +135,8 @@ public sealed class SalesService : ISalesService
         var saleItems = items.Select(i => new SaleItem(
             productId: i.ProductId,
             quantity: i.Quantity,
-            unitPrice: i.UnitPrice
+            unitPrice: i.UnitPrice,
+            specialPrice: i.SpecialPrice
         ));
         return saleItems;
     }
@@ -230,12 +272,14 @@ public sealed class SalesService : ISalesService
             {
                 ProductId = i.ProductId,
                 Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice
+                UnitPrice = i.UnitPrice,
+                SpecialPrice = i.SpecialPrice
             }).ToList(),
             CustomerId = sale.CustomerId,
-            CustomerName = sale.CustomerName,
+            CustomerName = sale.Customer?.Name,
             PaymentMethod = sale.PaymentMethod,
             Total = sale.Total,
+            IsDebt = sale.IsDebt,
             CreatedAt = sale.CreatedAt
         };
     }

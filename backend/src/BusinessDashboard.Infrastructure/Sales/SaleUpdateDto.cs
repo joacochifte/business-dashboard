@@ -7,4 +7,5 @@ public class SaleUpdateDto
     public decimal Total { get; init; }
     public Guid? CustomerId { get; init; }
     public string? PaymentMethod { get; init; } = "";
+    public bool IsDebt { get; init; }
 }

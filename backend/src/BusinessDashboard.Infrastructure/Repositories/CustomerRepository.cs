@@ -60,7 +60,7 @@ public class CustomerRepository : ICustomerRepository
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
         var customer = await GetByIdAsync(id, ct);
-        customer.Deactivate();
-        await UpdateAsync(customer, ct);
+        _context.Customers.Remove(customer);
+        await _context.SaveChangesAsync(ct);
     }
 }

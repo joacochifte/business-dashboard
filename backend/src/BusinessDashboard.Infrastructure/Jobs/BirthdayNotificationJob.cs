@@ -11,7 +11,7 @@ public class BirthdayNotificationJob : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<BirthdayNotificationJob> _logger;
 
-    private static readonly int[] TriggerDays = [7, 5, 0];
+    private static readonly int[] TriggerDays = [7, 0];
 
     public BirthdayNotificationJob(IServiceScopeFactory scopeFactory, ILogger<BirthdayNotificationJob> logger)
     {
@@ -32,8 +32,18 @@ public class BirthdayNotificationJob : BackgroundService
                 _logger.LogError(ex, "Error running BirthdayNotificationJob.");
             }
 
-            await WaitUntilNextRunAsync(stoppingToken);
+            await WaitUntilNextRunAsync(stoppingToken); // next 8AM UTC
         }
+    }
+
+    private static async Task WaitUntilNextRunAsync(CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var nextRun = now.Date.AddDays(1).AddHours(8); // tomorrow 8AM
+        if (now.Hour < 8)
+            nextRun = now.Date.AddHours(8); // today 8AM if we haven't reached it yet
+        var delay = nextRun - now;
+        await Task.Delay(delay, ct);
     }
 
     // Exposed for testing
@@ -64,7 +74,7 @@ public class BirthdayNotificationJob : BackgroundService
                 if (alreadyExists)
                     continue;
 
-                var notification = new Notification(title, today);
+                var notification = new Notification(title, today, customer.Id);
                 await notificationRepo.AddAsync(notification, ct);
 
                 _logger.LogInformation("Birthday notification created: {Title}", title);
@@ -78,15 +88,4 @@ public class BirthdayNotificationJob : BackgroundService
         1 => $"🎂 Mañana es el cumpleaños de {customerName}",
         _ => $"🎂 Cumpleaños de {customerName} en {daysAhead} días ({date:dd/MM})"
     };
-
-    private static async Task WaitUntilNextRunAsync(CancellationToken ct)
-    {
-        var now = DateTime.UtcNow;
-        var nextRun = now.Date.AddDays(1).AddHours(8);
-        var delay = nextRun - now;
-        if (delay < TimeSpan.Zero)
-            delay = TimeSpan.FromHours(24);
-
-        await Task.Delay(delay, ct);
-    }
 }

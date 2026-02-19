@@ -142,7 +142,7 @@ public class DashboardControllerTests
         _ = await _controller.GetSalesByPeriod("week", from, to, CancellationToken.None);
         Assert.AreEqual("week", _service.LastGroupBy);
 
-        _ = await _controller.GetTopProducts(7, from, to, CancellationToken.None);
+        _ = await _controller.GetTopProducts(7, from, to, "quantity", CancellationToken.None);
         Assert.AreEqual(7, _service.LastLimit);
     }
 
@@ -176,12 +176,28 @@ public class DashboardControllerTests
             return Task.FromResult(SalesByPeriodResult);
         }
 
-        public Task<IReadOnlyList<TopProductDto>> GetTopProductsAsync(int limit = 10, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+        public Task<IReadOnlyList<TopProductDto>> GetTopProductsAsync(int limit = 10, DateTime? from = null, DateTime? to = null, string sortBy = "revenue", CancellationToken ct = default)
         {
             LastLimit = limit;
             LastFrom = from;
             LastTo = to;
             return Task.FromResult(TopProductsResult);
+        }
+
+        public Task<IReadOnlyList<CustomerSalesDto>> GetSalesByCustomerAsync(int limit = 10, DateTime? from = null, DateTime? to = null, bool? excludeDebts = true, CancellationToken ct = default)
+        {
+            LastLimit = limit;
+            LastFrom = from;
+            LastTo = to;
+            return Task.FromResult(Array.Empty<CustomerSalesDto>() as IReadOnlyList<CustomerSalesDto>);
+        }
+
+        public Task<IReadOnlyList<CustomerSpendingDto>> GetSpendingByCustomerAsync(int limit = 10, DateTime? from = null, DateTime? to = null, bool? excludeDebts = true, CancellationToken ct = default)
+        {
+            LastLimit = limit;
+            LastFrom = from;
+            LastTo = to;
+            return Task.FromResult(Array.Empty<CustomerSpendingDto>() as IReadOnlyList<CustomerSpendingDto>);
         }
     }
 }

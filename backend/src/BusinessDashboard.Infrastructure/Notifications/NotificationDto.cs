@@ -6,4 +6,5 @@ public class NotificationDto
     public string Title { get; init; } = string.Empty;
     public DateTime Date { get; init; }
     public bool IsSeen { get; init; }
+    public Guid? CustomerId { get; init; }
 }

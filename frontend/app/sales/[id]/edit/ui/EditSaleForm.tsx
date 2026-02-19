@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { fetchJson } from "@/lib/api";
 import type { ProductDto } from "@/lib/products.api";
+import type { CustomerDto } from "@/lib/customers.api";
 import { updateSale, type SaleDto, type SaleItemDto, type SaleUpdateDto } from "@/lib/sales.api";
 
 type Props = {
@@ -16,11 +17,14 @@ type FormItem = {
   productId: string;
   unitPrice: string;
   quantity: string;
+  specialPrice: string;
+  useSpecialPrice: boolean;
 };
 
 type FormState = {
-  customerName: string;
+  customerId: string;
   paymentMethod: string;
+  isDebt: boolean;
   items: FormItem[];
 };
 
@@ -34,14 +38,18 @@ export default function EditSaleForm({ sale }: Props) {
 
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [customers, setCustomers] = useState<CustomerDto[]>([]);
 
   const [form, setForm] = useState<FormState>({
-    customerName: sale.customerName ?? "",
+    customerId: sale.customerId ?? "",
     paymentMethod: sale.paymentMethod ?? "",
+    isDebt: sale.isDebt ?? false,
     items: (sale.items ?? []).map((it) => ({
       productId: it.productId ?? "",
       unitPrice: String(it.unitPrice ?? ""),
       quantity: String(it.quantity ?? "1"),
+      specialPrice: String(it.specialPrice ?? ""),
+      useSpecialPrice: it.specialPrice != null,
     })),
   });
 
@@ -66,7 +74,17 @@ export default function EditSaleForm({ sale }: Props) {
       }
     }
 
+    async function loadCustomers() {
+      try {
+        const data = await fetchJson<CustomerDto[]>("/customers");
+        if (alive) setCustomers(data);
+      } catch {
+        // non-critical
+      }
+    }
+
     loadProducts();
+    loadCustomers();
     return () => {
       alive = false;
     };
@@ -78,10 +96,13 @@ export default function EditSaleForm({ sale }: Props) {
 
   const computedTotal = useMemo(() => {
     return form.items.reduce((acc, it) => {
-      const unitPrice = toNumber(it.unitPrice);
       const quantity = toNumber(it.quantity);
-      if (!Number.isFinite(unitPrice) || !Number.isFinite(quantity)) return acc;
-      return acc + unitPrice * quantity;
+      if (!Number.isFinite(quantity)) return acc;
+      
+      const price = it.useSpecialPrice ? toNumber(it.specialPrice) : toNumber(it.unitPrice);
+      if (!Number.isFinite(price) || price < 0) return acc;
+      
+      return acc + price * quantity;
     }, 0);
   }, [form.items]);
 
@@ -97,6 +118,11 @@ export default function EditSaleForm({ sale }: Props) {
 
       const quantity = toNumber(it.quantity);
       if (!Number.isInteger(quantity) || quantity <= 0) return `Item #${i + 1}: quantity must be a positive integer.`;
+
+      if (it.useSpecialPrice) {
+        const specialPrice = toNumber(it.specialPrice);
+        if (!Number.isFinite(specialPrice) || specialPrice < 0) return `Item #${i + 1}: special price must be >= 0.`;
+      }
     }
 
     return null;
@@ -120,7 +146,7 @@ export default function EditSaleForm({ sale }: Props) {
   function addItem() {
     setForm((s) => ({
       ...s,
-      items: [...s.items, { productId: "", unitPrice: "", quantity: "1" }],
+      items: [...s.items, { productId: "", unitPrice: "", quantity: "1", specialPrice: "", useSpecialPrice: false }],
     }));
   }
 
@@ -144,14 +170,16 @@ export default function EditSaleForm({ sale }: Props) {
       productId: it.productId.trim(),
       unitPrice: Number(it.unitPrice),
       quantity: Number(it.quantity),
+      specialPrice: it.useSpecialPrice ? Number(it.specialPrice) : null,
     }));
 
     const payload: SaleUpdateDto = {
       id: sale.id,
       items: items as SaleItemDto[],
       total: computedTotal,
-      customerName: form.customerName.trim() ? form.customerName.trim() : null,
+      customerId: form.customerId || null,
       paymentMethod: form.paymentMethod.trim() ? form.paymentMethod.trim() : null,
+      isDebt: form.isDebt,
     };
 
     setSubmitting(true);
@@ -177,13 +205,17 @@ export default function EditSaleForm({ sale }: Props) {
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-1">
-          <span className="text-sm font-medium text-neutral-800">Customer name</span>
-          <input
-            value={form.customerName}
-            onChange={(e) => setForm((s) => ({ ...s, customerName: e.target.value }))}
+          <span className="text-sm font-medium text-neutral-800">Customer</span>
+          <select
+            value={form.customerId}
+            onChange={(e) => setForm((s) => ({ ...s, customerId: e.target.value }))}
             className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
-            placeholder="Optional"
-          />
+          >
+            <option value="">— None —</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
         </label>
 
         <label className="grid gap-1">
@@ -201,6 +233,16 @@ export default function EditSaleForm({ sale }: Props) {
         </label>
       </div>
 
+      <label className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={form.isDebt}
+          onChange={(e) => setForm((s) => ({ ...s, isDebt: e.target.checked }))}
+          className="h-4 w-4 rounded border-black/20 accent-neutral-800"
+        />
+        <span className="text-sm font-medium text-neutral-800">Mark as debt</span>
+      </label>
+
       <div className="rounded-2xl border border-black/10 bg-white/60 shadow-sm backdrop-blur">
         <div className="flex items-center justify-between border-b border-black/10 bg-white/40 px-4 py-3">
           <div className="text-sm font-medium text-neutral-800">Items</div>
@@ -215,57 +257,79 @@ export default function EditSaleForm({ sale }: Props) {
 
         <div className="space-y-3 p-4">
           {form.items.map((it, idx) => (
-            <div key={idx} className="grid gap-3 md:grid-cols-12">
-              <label className="grid gap-1 md:col-span-6">
-                <span className="text-xs font-medium text-neutral-700">Product</span>
-                <select
-                  value={it.productId}
-                  onChange={(e) => onChangeProduct(idx, e.target.value)}
-                  className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
-                  disabled={productsLoading}
-                >
-                  <option value="">{productsLoading ? "Loading products..." : "Select a product"}</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div key={idx} className="space-y-2">
+              <div className="grid gap-3 md:grid-cols-12">
+                <label className="grid gap-1 md:col-span-6">
+                  <span className="text-xs font-medium text-neutral-700">Product</span>
+                  <select
+                    value={it.productId}
+                    onChange={(e) => onChangeProduct(idx, e.target.value)}
+                    className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5 disabled:bg-white/40 disabled:text-neutral-500"
+                    disabled={productsLoading}
+                  >
+                    <option value="">{productsLoading ? "Loading products..." : "Select a product"}</option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <label className="grid gap-1 md:col-span-3">
-                <span className="text-xs font-medium text-neutral-700">Unit price</span>
-                <input
-                  value={it.unitPrice}
-                  onChange={(e) => setItem(idx, { unitPrice: e.target.value })}
-                  className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
-                  inputMode="decimal"
-                  placeholder="0"
-                />
-              </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-xs font-medium text-neutral-700">Unit price</span>
+                  <input
+                    value={it.unitPrice}
+                    onChange={(e) => setItem(idx, { unitPrice: e.target.value })}
+                    className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+                    inputMode="decimal"
+                    placeholder="0"
+                  />
+                </label>
 
-              <label className="grid gap-1 md:col-span-2">
-                <span className="text-xs font-medium text-neutral-700">Qty</span>
-                <input
-                  value={it.quantity}
-                  onChange={(e) => setItem(idx, { quantity: e.target.value })}
-                  className="w-full max-w-[88px] rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
-                  inputMode="numeric"
-                  placeholder="1"
-                />
-              </label>
+                <span className="grid gap-1 md:col-span-2">
+                  <span className="text-xs font-medium text-neutral-700">Qty</span>
+                  <input
+                    value={it.quantity}
+                    onChange={(e) => setItem(idx, { quantity: e.target.value })}
+                    className="w-full rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+                    inputMode="numeric"
+                    placeholder="1"
+                  />
+                </span>
 
-              <div className="flex items-end md:col-span-1">
-                <button
-                  type="button"
-                  onClick={() => removeItem(idx)}
-                  disabled={form.items.length <= 1}
-                  className="w-full rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-xs font-semibold text-rose-900 shadow-sm backdrop-blur transition hover:bg-rose-100/80 disabled:opacity-60"
-                  title={form.items.length <= 1 ? "At least one item is required" : "Remove item"}
-                >
-                  ✕
-                </button>
+                <div className="flex items-end md:col-span-2">
+                  <button
+                    type="button"
+                    onClick={() => removeItem(idx)}
+                    disabled={form.items.length <= 1}
+                    className="w-full rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-xs font-semibold text-rose-900 shadow-sm backdrop-blur transition hover:bg-rose-100/80 disabled:opacity-60"
+                    title={form.items.length <= 1 ? "At least one item is required" : "Remove item"}
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
+
+              <label className="flex items-center gap-2 pl-0">
+                <input
+                  type="checkbox"
+                  checked={it.useSpecialPrice}
+                  onChange={(e) => setItem(idx, { useSpecialPrice: e.target.checked, specialPrice: e.target.checked ? "" : "" })}
+                  className="h-4 w-4 rounded border-black/20 accent-neutral-800"
+                />
+                <span className="text-xs font-medium text-neutral-700">Special price</span>
+                {it.useSpecialPrice && (
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={it.specialPrice}
+                    onChange={(e) => setItem(idx, { specialPrice: e.target.value })}
+                    placeholder="0.00"
+                    className="ml-2 w-24 rounded-xl border border-black/10 bg-white/70 px-2 py-1.5 text-xs outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+                  />
+                )}
+              </label>
             </div>
           ))}
         </div>
@@ -290,7 +354,7 @@ export default function EditSaleForm({ sale }: Props) {
       </div>
 
       <p className="text-xs text-neutral-600">
-        Unit price is auto-filled from the product, but you can override it if needed.
+        Unit price is auto-filled from the product. Enable "Special price" to override it per item.
       </p>
     </form>
   );

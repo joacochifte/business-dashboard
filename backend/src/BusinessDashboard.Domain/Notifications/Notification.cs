@@ -7,13 +7,15 @@ public class Notification : Entity
     public string Title { get; private set; } = string.Empty;
     public DateTime Date { get; private set; }
     public bool IsSeen { get; private set; } = false;
+    public Guid? CustomerId { get; private set; }
 
     private Notification() { }
 
-    public Notification(string title, DateTime date)
+    public Notification(string title, DateTime date, Guid? customerId = null)
     {
         SetTitle(title);
         Date = date;
+        CustomerId = customerId;
     }
 
     public void SetTitle(string title)

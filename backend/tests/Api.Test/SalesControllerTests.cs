@@ -125,7 +125,7 @@ public class SalesControllerTests
             return Task.CompletedTask;
         }
 
-        public Task<IEnumerable<SaleDto>> GetAllSalesAsync(CancellationToken ct = default)
+        public Task<IEnumerable<SaleDto>> GetAllSalesAsync(bool? isDebt = null, CancellationToken ct = default)
         {
             return Task.FromResult(GetAllSalesResult);
         }

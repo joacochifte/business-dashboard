@@ -4,8 +4,10 @@ import type { IsoDateTime } from "@/lib/api";
 export type SaleDto = {
   id: string;
   items: SaleItemDto[];
+  customerId?: string | null;
   customerName?: string | null;
   paymentMethod?: string | null;
+  isDebt: boolean;
   total: number;
   createdAt: IsoDateTime;
 };
@@ -14,26 +16,33 @@ export type SaleItemDto = {
   productId: string;
   unitPrice: number;
   quantity: number;
+  specialPrice?: number | null;
 };
 
 export type SaleCreationDto = {
   items: SaleItemDto[];
   total: number;
-  customerName?: string | null;
+  customerId?: string | null;
   paymentMethod?: string | null;
+  isDebt: boolean;
 };
 
 export type SaleUpdateDto = {
   id: string;
   items: SaleItemDto[];
   total: number;
-  customerName?: string | null;
+  customerId?: string | null;
   paymentMethod?: string | null;
+  isDebt: boolean;
 };
 
 // Server (pages / server components)
 export async function getSales(): Promise<SaleDto[]> {
   return apiJsonServer<SaleDto[]>("/sales", { cache: "no-store" });
+}
+
+export async function getSalesByDebt(isDebt: boolean): Promise<SaleDto[]> {
+  return apiJsonServer<SaleDto[]>(`/sales?isDebt=${isDebt}`, { cache: "no-store" });
 }
 
 export async function getSaleById(id: string): Promise<SaleDto> {

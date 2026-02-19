@@ -73,6 +73,7 @@ public class NotificationService : INotificationService
         Id = notification.Id,
         Title = notification.Title,
         Date = notification.Date,
-        IsSeen = notification.IsSeen
+        IsSeen = notification.IsSeen,
+        CustomerId = notification.CustomerId
     };
 }

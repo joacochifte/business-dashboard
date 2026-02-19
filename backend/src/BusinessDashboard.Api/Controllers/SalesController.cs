@@ -7,9 +7,9 @@ using BusinessDashboard.Infrastructure.Sales;
 public class SalesController(ISalesService salesService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetSales()
+    public async Task<IActionResult> GetSales([FromQuery] bool? isDebt = null)
     {
-        var sales = await salesService.GetAllSalesAsync();
+        var sales = await salesService.GetAllSalesAsync(isDebt);
         return Ok(sales);
     }
     [HttpGet("{id}")]

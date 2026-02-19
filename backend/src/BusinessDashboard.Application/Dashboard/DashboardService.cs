@@ -60,7 +60,7 @@ public sealed class DashboardService : IDashboardService
         };
     }
 
-    public async Task<IReadOnlyList<TopProductDto>> GetTopProductsAsync(int limit = 10, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<TopProductDto>> GetTopProductsAsync(int limit = 10, DateTime? from = null, DateTime? to = null, string sortBy = "revenue", CancellationToken ct = default)
     {
         if (limit < 1) limit = 1;
         if (limit > 50) limit = 50;
@@ -76,14 +76,17 @@ public sealed class DashboardService : IDashboardService
             {
                 ProductId = g.Key,
                 Quantity = g.Sum(x => x.Quantity),
-                Revenue = g.Sum(x => x.Quantity * x.UnitPrice)
-            })
-            .OrderByDescending(x => x.Revenue)
-            .ThenByDescending(x => x.Quantity)
-            .Take(limit)
-            .ToList();
+                Revenue = g.Sum(x => x.Quantity * (x.SpecialPrice ?? x.UnitPrice))
+            });
 
-        var ids = grouped.Select(x => x.ProductId).ToList();
+        // Sort by revenue or quantity based on sortBy parameter
+        var ordered = sortBy?.ToLowerInvariant() == "quantity"
+            ? grouped.OrderByDescending(x => x.Quantity).ThenByDescending(x => x.Revenue)
+            : grouped.OrderByDescending(x => x.Revenue).ThenByDescending(x => x.Quantity);
+
+        var topItems = ordered.Take(limit).ToList();
+
+        var ids = topItems.Select(x => x.ProductId).ToList();
         var names = await _db.Products
             .AsNoTracking()
             .Where(p => ids.Contains(p.Id))
@@ -92,7 +95,7 @@ public sealed class DashboardService : IDashboardService
 
         var nameMap = names.ToDictionary(x => x.Id, x => x.Name);
 
-        return grouped.Select(x => new TopProductDto
+        return topItems.Select(x => new TopProductDto
         {
             ProductId = x.ProductId,
             ProductName = nameMap.GetValueOrDefault(x.ProductId, string.Empty),
@@ -108,6 +111,9 @@ public sealed class DashboardService : IDashboardService
 
         if (to is not null)
             query = query.Where(s => s.CreatedAt <= to.Value);
+
+        // Exclude debts from dashboard calculations
+        query = query.Where(s => !s.IsDebt);
 
         return query;
     }
@@ -148,6 +154,80 @@ public sealed class DashboardService : IDashboardService
             "week" => StartOfWeekUtc(dt, DayOfWeek.Monday),
             _ => throw new ArgumentOutOfRangeException(nameof(groupBy))
         };
+    }
+
+    public async Task<IReadOnlyList<CustomerSalesDto>> GetSalesByCustomerAsync(int limit = 10, DateTime? from = null, DateTime? to = null, bool? excludeDebts = true, CancellationToken ct = default)
+    {
+        if (limit < 1) limit = 1;
+        if (limit > 50) limit = 50;
+
+        var salesQuery = ApplySalesFilterWithDebtOption(_db.Sales.AsNoTracking(), from, to, excludeDebts);
+        
+        var salesByCustomer = await salesQuery
+            .Include(s => s.Customer)
+            .GroupBy(s => s.CustomerId)
+            .Select(g => new
+            {
+                CustomerId = g.Key,
+                CustomerName = g.First().Customer != null && g.First().Customer.Name != null ? g.First().Customer.Name : "Unknown",
+                SalesCount = g.Count()
+            })
+            .OrderByDescending(x => x.SalesCount)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return salesByCustomer
+            .Select(x => new CustomerSalesDto
+            {
+                CustomerId = x.CustomerId.GetValueOrDefault(),
+                CustomerName = x.CustomerName,
+                SalesCount = x.SalesCount
+            })
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<CustomerSpendingDto>> GetSpendingByCustomerAsync(int limit = 10, DateTime? from = null, DateTime? to = null, bool? excludeDebts = true, CancellationToken ct = default)
+    {
+        if (limit < 1) limit = 1;
+        if (limit > 50) limit = 50;
+
+        var salesQuery = ApplySalesFilterWithDebtOption(_db.Sales.AsNoTracking(), from, to, excludeDebts);
+
+        var spendingByCustomer = await salesQuery
+            .Include(s => s.Customer)
+            .GroupBy(s => s.CustomerId)
+            .Select(g => new
+            {
+                CustomerId = g.Key,
+                CustomerName = g.First().Customer != null? g.First().Customer.Name : "Unknown",
+                TotalSpent = g.Sum(s => s.Total)
+            })
+            .OrderByDescending(x => x.TotalSpent)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return spendingByCustomer
+            .Select(x => new CustomerSpendingDto
+            {
+                CustomerId = x.CustomerId.GetValueOrDefault(),
+                CustomerName = x.CustomerName,
+                TotalSpent = x.TotalSpent
+            })
+            .ToList();
+    }
+
+    private static IQueryable<Sale> ApplySalesFilterWithDebtOption(IQueryable<Sale> query, DateTime? from, DateTime? to, bool? excludeDebts)
+    {
+        if (from is not null)
+            query = query.Where(s => s.CreatedAt >= from.Value);
+
+        if (to is not null)
+            query = query.Where(s => s.CreatedAt <= to.Value);
+
+        if (excludeDebts.HasValue && excludeDebts.Value)
+            query = query.Where(s => !s.IsDebt);
+
+        return query;
     }
 
     private static DateTime StartOfWeekUtc(DateTime dt, DayOfWeek startOfWeek)

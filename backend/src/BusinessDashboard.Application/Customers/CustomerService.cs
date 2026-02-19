@@ -27,7 +27,7 @@ public class CustomerService : ICustomerService
             name: request.Name,
             email: request.Email,
             phone: request.Phone,
-            birthDate: request.BirthDate
+            birthDate: ToUtc(request.BirthDate)
         );
 
         await _repo.AddAsync(customer, ct);
@@ -65,7 +65,7 @@ public class CustomerService : ICustomerService
         customer.SetName(request.Name);
         customer.SetEmail(request.Email);
         customer.SetPhone(request.Phone);
-        customer.SetBirthDate(request.BirthDate);
+        customer.SetBirthDate(ToUtc(request.BirthDate));
 
         if (!request.IsActive)
             customer.Deactivate();
@@ -74,6 +74,9 @@ public class CustomerService : ICustomerService
 
         await _repo.UpdateAsync(customer, ct);
     }
+
+    private static DateTime? ToUtc(DateTime? dt) =>
+        dt.HasValue ? DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc) : null;
 
     private static CustomerDto MapToDto(Customer customer) => new()
     {

@@ -1,0 +1,149 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { updateCustomer, type CustomerDto } from "@/lib/customers.api";
+
+type Props = {
+  customer: CustomerDto;
+};
+
+type FormState = {
+  name: string;
+  email: string;
+  phone: string;
+  birthDate: string;
+  isActive: boolean;
+};
+
+function toDateInputValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  // ISO might be "1990-05-20T00:00:00Z" → extract "1990-05-20"
+  return iso.slice(0, 10);
+}
+
+export default function EditCustomerForm({ customer }: Props) {
+  const router = useRouter();
+
+  const [form, setForm] = useState<FormState>({
+    name: customer.name,
+    email: customer.email ?? "",
+    phone: customer.phone ?? "",
+    birthDate: toDateInputValue(customer.birthDate),
+    isActive: customer.isActive,
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const clientValidationError = useMemo(() => {
+    if (!form.name.trim()) return "Name is required.";
+    return null;
+  }, [form]);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (clientValidationError) {
+      setError(clientValidationError);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updateCustomer(customer.id, {
+        id: customer.id,
+        name: form.name.trim(),
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+        birthDate: form.birthDate || null,
+        isActive: form.isActive,
+      });
+      router.push("/customers");
+      router.refresh();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      {error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50/70 px-4 py-3 text-sm text-rose-900 shadow-sm backdrop-blur">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium text-neutral-800">Name <span className="text-rose-500">*</span></span>
+          <input
+            value={form.name}
+            onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+            required
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium text-neutral-800">Email</span>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+            placeholder="jane@example.com"
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium text-neutral-800">Phone</span>
+          <input
+            value={form.phone}
+            onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+            placeholder="+1 555 000 0000"
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium text-neutral-800">Birthday</span>
+          <input
+            type="date"
+            value={form.birthDate}
+            onChange={(e) => setForm((s) => ({ ...s, birthDate: e.target.value }))}
+            className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+          />
+        </label>
+
+        <label className="flex items-center gap-2 pt-5">
+          <input
+            type="checkbox"
+            checked={form.isActive}
+            onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
+            className="h-4 w-4 rounded border-black/20 accent-black"
+          />
+          <span className="text-sm font-medium text-neutral-800">Active</span>
+        </label>
+      </div>
+
+      <div className="flex items-center gap-3 pt-2">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90 disabled:opacity-60"
+        >
+          {submitting ? "Saving..." : "Save changes"}
+        </button>
+        <Link href="/customers" className="text-sm font-medium text-neutral-800 hover:underline">
+          Cancel
+        </Link>
+      </div>
+    </form>
+  );
+}

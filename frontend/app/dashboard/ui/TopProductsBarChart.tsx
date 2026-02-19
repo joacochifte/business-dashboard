@@ -15,13 +15,14 @@ import type { TopProductDto } from "@/lib/dashboard.api";
 
 type Props = {
   data: TopProductDto[];
+  sortBy?: "revenue" | "quantity";
 };
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
 }
 
-export default function TopProductsBarChart({ data }: Props) {
+export default function TopProductsBarChart({ data, sortBy = "revenue" }: Props) {
   const chartData = data.map((p) => ({
     name: p.productName?.trim() ? p.productName : p.productId,
     revenue: p.revenue,
@@ -55,13 +56,14 @@ export default function TopProductsBarChart({ data }: Props) {
             tickLine={false}
             axisLine={false}
             tick={{ fill: "#404040", fontSize: 12 }}
-            tickFormatter={(v) => (typeof v === "number" ? formatMoney(v) : String(v))}
+            tickFormatter={(v) => (typeof v === "number" && sortBy === "revenue" ? formatMoney(v) : String(v))}
             width={86}
           />
           <Tooltip
             cursor={{ fill: "rgba(0,0,0,0.04)" }}
             formatter={(value, name, props) => {
               if (name === "revenue") return [formatMoney(Number(value)), "Revenue"];
+              if (name === "quantity") return [String(value), "Quantity"];
               return [String(value), String(name)];
             }}
             labelFormatter={(label) => String(label)}
@@ -71,7 +73,7 @@ export default function TopProductsBarChart({ data }: Props) {
               boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
             }}
           />
-          <Bar dataKey="revenue" radius={[10, 10, 6, 6]}>
+          <Bar dataKey={sortBy} radius={[10, 10, 6, 6]}>
             {chartData.map((_, idx) => (
               <Cell key={idx} fill="rgba(0,0,0,0.82)" />
             ))}
