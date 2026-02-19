@@ -34,8 +34,8 @@ export default function ClientDateTime({
 
     const opts: Intl.DateTimeFormatOptions =
       variant === "date"
-        ? { dateStyle: "medium" }
-        : { dateStyle: "medium", timeStyle: "short" };
+        ? { day: '2-digit', month: '2-digit', year: 'numeric' }
+        : { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
 
     // Use browser locale + timezone so it matches the user's machine.
     setText(new Intl.DateTimeFormat(undefined, opts).format(d));

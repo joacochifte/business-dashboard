@@ -109,7 +109,7 @@ export default function NotificationBell() {
                       <p className="text-sm text-neutral-900">{n.title}</p>
                     )}
                     <p className="mt-0.5 text-xs text-neutral-500">
-                      {new Date(n.date).toLocaleDateString()}
+                      {new Date(n.date).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                     </p>
                   </div>
                   <button

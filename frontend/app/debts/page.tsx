@@ -60,7 +60,7 @@ async function DebtsTable() {
                 {sale.total.toFixed(2)}
               </td>
               <td className="px-4 py-3 text-neutral-700">
-                {new Date(sale.createdAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                {new Date(sale.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}
               </td>
               <td className="px-4 py-3 text-center">
                 <Link
