@@ -101,6 +101,7 @@ export default function NewCustomerForm() {
           <span className="text-sm font-medium text-neutral-800">Birthday</span>
           <input
             type="date"
+            lang="es"
             value={form.birthDate}
             onChange={(e) => setForm((s) => ({ ...s, birthDate: e.target.value }))}
             className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"

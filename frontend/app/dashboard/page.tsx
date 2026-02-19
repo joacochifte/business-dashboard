@@ -180,10 +180,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Dashboard</h1>
           <p className="text-sm text-neutral-600">
-            High-level metrics for your business.{" "}
-            <span className="font-medium text-neutral-800">
-              {range.label} (local)
-            </span>
+            High-level metrics for your business.
           </p>
         </div>
         <div className="flex items-center gap-2">

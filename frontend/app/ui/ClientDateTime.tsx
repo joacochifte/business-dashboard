@@ -37,8 +37,8 @@ export default function ClientDateTime({
         ? { day: '2-digit', month: '2-digit', year: 'numeric' }
         : { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
 
-    // Use browser locale + timezone so it matches the user's machine.
-    setText(new Intl.DateTimeFormat(undefined, opts).format(d));
+    // Use 'es' locale to ensure dd/mm/yyyy format.
+    setText(new Intl.DateTimeFormat("es", opts).format(d));
   }, [iso, variant, fallback]);
 
   return (

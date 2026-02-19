@@ -30,7 +30,7 @@ function toLabel(periodStart: string, groupBy: "day" | "month") {
 
   const d = new Date(periodStart);
   if (Number.isNaN(d.getTime())) return periodStart;
-  return new Intl.DateTimeFormat(undefined, { month: "short", day: "2-digit" }).format(d);
+  return new Intl.DateTimeFormat("es", { month: "short", day: "2-digit" }).format(d);
 }
 
 export default function CostsByPeriodChart({ points, groupBy }: Props) {

@@ -60,7 +60,7 @@ async function DebtsTable() {
                 {sale.total.toFixed(2)}
               </td>
               <td className="px-4 py-3 text-neutral-700">
-                {new Date(sale.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                {new Date(sale.createdAt).toLocaleDateString("es", { day: '2-digit', month: '2-digit', year: 'numeric' })}
               </td>
               <td className="px-4 py-3 text-center">
                 <Link
@@ -85,9 +85,6 @@ export default function DebtsPage() {
       <header className="flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Debts</h1>
-          <p className="text-sm text-neutral-600">
-            All sales marked as debt. Click "View" to edit or mark as paid.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <AppNav className="hidden md:flex" />
