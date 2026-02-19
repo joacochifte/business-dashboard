@@ -4,6 +4,7 @@ import AppNav from "./ui/AppNav";
 const quickLinks = [
   { href: "/dashboard", title: "Dashboard", description: "Metrics and trends" },
   { href: "/products", title: "Products", description: "Catalog and stock status" },
+  { href: "/customers", title: "Customers", description: "Client management" },
   { href: "/sales", title: "Sales", description: "Transactions and totals" },
   { href: "/inventory", title: "Inventory", description: "Movements and adjustments" },
   { href: "/costs", title: "Costs", description: "Operational expenses" },
@@ -65,6 +66,12 @@ export default function HomePage() {
               className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white/60 px-4 py-2.5 text-sm font-semibold text-neutral-900 shadow-sm backdrop-blur transition hover:bg-white/80"
             >
               Add product
+            </Link>
+            <Link
+              href="/customers/new"
+              className="inline-flex items-center justify-center rounded-xl border border-black/10 bg-white/60 px-4 py-2.5 text-sm font-semibold text-neutral-900 shadow-sm backdrop-blur transition hover:bg-white/80"
+            >
+              Add customer
             </Link>
           </div>
         </section>
