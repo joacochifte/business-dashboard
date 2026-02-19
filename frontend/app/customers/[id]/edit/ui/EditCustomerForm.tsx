@@ -14,7 +14,6 @@ type FormState = {
   email: string;
   phone: string;
   birthDate: string;
-  isActive: boolean;
 };
 
 function toDateInputValue(iso: string | null | undefined): string {
@@ -31,7 +30,6 @@ export default function EditCustomerForm({ customer }: Props) {
     email: customer.email ?? "",
     phone: customer.phone ?? "",
     birthDate: toDateInputValue(customer.birthDate),
-    isActive: customer.isActive,
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -59,7 +57,7 @@ export default function EditCustomerForm({ customer }: Props) {
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
         birthDate: form.birthDate || null,
-        isActive: form.isActive,
+        isActive: true,
       });
       router.push("/customers");
       router.refresh();
@@ -119,16 +117,6 @@ export default function EditCustomerForm({ customer }: Props) {
             onChange={(e) => setForm((s) => ({ ...s, birthDate: e.target.value }))}
             className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
           />
-        </label>
-
-        <label className="flex items-center gap-2 pt-5">
-          <input
-            type="checkbox"
-            checked={form.isActive}
-            onChange={(e) => setForm((s) => ({ ...s, isActive: e.target.checked }))}
-            className="h-4 w-4 rounded border-black/20 accent-black"
-          />
-          <span className="text-sm font-medium text-neutral-800">Active</span>
         </label>
       </div>
 

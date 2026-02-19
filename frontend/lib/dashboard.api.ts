@@ -58,8 +58,9 @@ export async function getSalesByPeriod(opts?: {
   groupBy?: "day" | "week" | "month";
   from?: IsoDateTime;
   to?: IsoDateTime;
+  tzOffsetMinutes?: number;
 }): Promise<SalesByPeriodDto> {
-  const qs = toQuery({ groupBy: opts?.groupBy ?? "day", from: opts?.from, to: opts?.to });
+  const qs = toQuery({ groupBy: opts?.groupBy ?? "day", from: opts?.from, to: opts?.to, tzOffsetMinutes: opts?.tzOffsetMinutes ?? 0 });
   return apiJsonServer<SalesByPeriodDto>(`/dashboard/sales-by-period${qs}`, { cache: "no-store" });
 }
 

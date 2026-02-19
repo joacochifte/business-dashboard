@@ -153,7 +153,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   const [summary, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer] = await Promise.all([
     getDashboardSummary({ from: range.from, to: range.to }),
-    getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to }),
+    getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to, tzOffsetMinutes }),
     getTopProducts({ limit: 10, from: range.from, to: range.to, sortBy: topProductsSortBy }),
     getCosts({ startDate: range.from, endDate: range.to }),
     getSalesByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),

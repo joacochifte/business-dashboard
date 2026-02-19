@@ -35,7 +35,7 @@ public sealed class DashboardService : IDashboardService
         };
     }
 
-    public async Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+    public async Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, int tzOffsetMinutes = 0, CancellationToken ct = default)
     {
         var normalized = NormalizeGroupBy(groupBy);
         var sales = await ApplySalesFilter(_db.Sales.AsNoTracking(), from, to)
@@ -43,7 +43,7 @@ public sealed class DashboardService : IDashboardService
             .ToListAsync(ct);
 
         var points = sales
-            .GroupBy(s => GetPeriodStart(s.CreatedAt, normalized))
+            .GroupBy(s => GetPeriodStart(s.CreatedAt, normalized, tzOffsetMinutes))
             .Select(g => new SalesByPeriodPointDto
             {
                 PeriodStart = g.Key,
@@ -143,17 +143,21 @@ public sealed class DashboardService : IDashboardService
         };
     }
 
-    private static DateTime GetPeriodStart(DateTime dt, string groupBy)
+    private static DateTime GetPeriodStart(DateTime dt, string groupBy, int tzOffsetMinutes = 0)
     {
-        dt = dt.ToUniversalTime();
+        // Convert UTC to local time by applying timezone offset
+        var localDt = dt.ToUniversalTime().AddMinutes(-tzOffsetMinutes);
 
-        return groupBy switch
+        DateTime periodStart = groupBy switch
         {
-            "day" => new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, DateTimeKind.Utc),
-            "month" => new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, DateTimeKind.Utc),
-            "week" => StartOfWeekUtc(dt, DayOfWeek.Monday),
+            "day" => new DateTime(localDt.Year, localDt.Month, localDt.Day, 0, 0, 0, DateTimeKind.Unspecified),
+            "month" => new DateTime(localDt.Year, localDt.Month, 1, 0, 0, 0, DateTimeKind.Unspecified),
+            "week" => StartOfWeekLocal(localDt, DayOfWeek.Monday),
             _ => throw new ArgumentOutOfRangeException(nameof(groupBy))
         };
+
+        // Convert back to UTC for consistent response
+        return DateTime.SpecifyKind(periodStart.AddMinutes(tzOffsetMinutes), DateTimeKind.Utc);
     }
 
     public async Task<IReadOnlyList<CustomerSalesDto>> GetSalesByCustomerAsync(int limit = 10, DateTime? from = null, DateTime? to = null, bool? excludeDebts = true, CancellationToken ct = default)
@@ -233,6 +237,13 @@ public sealed class DashboardService : IDashboardService
     private static DateTime StartOfWeekUtc(DateTime dt, DayOfWeek startOfWeek)
     {
         var date = DateTime.SpecifyKind(dt.Date, DateTimeKind.Utc);
+        var diff = (7 + (date.DayOfWeek - startOfWeek)) % 7;
+        return date.AddDays(-diff);
+    }
+
+    private static DateTime StartOfWeekLocal(DateTime dt, DayOfWeek startOfWeek)
+    {
+        var date = dt.Date;
         var diff = (7 + (date.DayOfWeek - startOfWeek)) % 7;
         return date.AddDays(-diff);
     }

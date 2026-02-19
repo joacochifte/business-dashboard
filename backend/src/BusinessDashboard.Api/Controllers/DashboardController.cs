@@ -20,6 +20,7 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
         [FromQuery] string groupBy = "day",
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
+        [FromQuery] int tzOffsetMinutes = 0,
         CancellationToken ct = default)
     {
         if (from is not null && to is not null && from > to)
@@ -27,7 +28,7 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
 
         try
         {
-            var result = await dashboard.GetSalesByPeriodAsync(groupBy, from, to, ct);
+            var result = await dashboard.GetSalesByPeriodAsync(groupBy, from, to, tzOffsetMinutes, ct);
             return Ok(result);
         }
         catch (ArgumentException ex) when (ex.ParamName == "groupBy")

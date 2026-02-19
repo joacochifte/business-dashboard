@@ -61,7 +61,7 @@ public class DashboardControllerTests
             }
         };
 
-        var result = await _controller.GetSalesByPeriod(groupBy: "day", from: null, to: null, ct: CancellationToken.None);
+        var result = await _controller.GetSalesByPeriod(groupBy: "day", from: null, to: null, tzOffsetMinutes: 0, ct: CancellationToken.None);
 
         var ok = result as OkObjectResult;
         Assert.IsNotNull(ok);
@@ -77,7 +77,7 @@ public class DashboardControllerTests
     {
         _service.ThrowInvalidGroupBy = true;
 
-        var result = await _controller.GetSalesByPeriod(groupBy: "year", from: null, to: null, ct: CancellationToken.None);
+        var result = await _controller.GetSalesByPeriod(groupBy: "year", from: null, to: null, tzOffsetMinutes: 0, ct: CancellationToken.None);
 
         Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
     }
@@ -89,6 +89,7 @@ public class DashboardControllerTests
             groupBy: "day",
             from: new DateTime(2026, 02, 04),
             to: new DateTime(2026, 02, 01),
+            tzOffsetMinutes: 0,
             ct: CancellationToken.None);
 
         Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
@@ -139,7 +140,7 @@ public class DashboardControllerTests
         Assert.AreEqual(from, _service.LastFrom);
         Assert.AreEqual(to, _service.LastTo);
 
-        _ = await _controller.GetSalesByPeriod("week", from, to, CancellationToken.None);
+        _ = await _controller.GetSalesByPeriod("week", from, to, 0, CancellationToken.None);
         Assert.AreEqual("week", _service.LastGroupBy);
 
         _ = await _controller.GetTopProducts(7, from, to, "quantity", CancellationToken.None);
@@ -165,7 +166,7 @@ public class DashboardControllerTests
             return Task.FromResult(SummaryResult);
         }
 
-        public Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+        public Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, int tzOffsetMinutes = 0, CancellationToken ct = default)
         {
             if (ThrowInvalidGroupBy)
                 throw new ArgumentException("groupBy must be 'day', 'week', or 'month'.", nameof(groupBy));
