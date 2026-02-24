@@ -2,7 +2,7 @@
 
 Portfolio project: a realistic business dashboard for a small family business.
 
-It covers the essentials you would expect in a real system: product catalog, optional stock tracking with inventory movements, sales, and a dashboard with metrics and charts.
+It covers the essentials you would expect in a real system: product catalog, optional stock tracking with inventory movements, sales, customer management, debt tracking, and a dashboard with metrics and charts.
 
 ## Features (current)
 
@@ -13,8 +13,17 @@ It covers the essentials you would expect in a real system: product catalog, opt
   - Manual stock adjustments
   - Movements list (filter by product and date range)
 - Sales
-  - Create sales with multiple items
+  - Create / edit / delete sales with multiple items
+  - Optional customer per sale and payment method
+  - Sales can be marked as debt (`isDebt`)
   - Validates stock and discounts it (tracked products only)
+- Customers
+  - Create / edit / delete customer profiles
+  - Optional contact info (email, phone) and birthday
+  - Customer list with search/sort and purchase stats (purchases + lifetime value)
+- Debts
+  - Dedicated debts page (`/debts`)
+  - Uses sales debt filter (`/sales?isDebt=true`) to list debt sales
 - Costs
   - Create / edit / delete
 - Dashboard
@@ -23,6 +32,7 @@ It covers the essentials you would expect in a real system: product catalog, opt
   - Top products (by revenue)
   - Costs by period
   - Total Gains (Revenue - Costs) by period
+  - Debt sales can be excluded from dashboard aggregates
 - API
   - Swagger in Development
   - Consistent error payloads (ProblemDetails via middleware)
@@ -123,4 +133,3 @@ dotnet test
 ## Notes
 
 - Timestamps are stored in the database as UTC. The UI renders dates using the browser's local timezone.
-

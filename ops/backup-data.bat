@@ -13,5 +13,13 @@ if not exist "%ENV_FILE%" (
 
 if not exist backups mkdir backups
 for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd-HHmmss"') do set TS=%%i
-docker compose --env-file "%ENV_FILE%" exec -T postgres sh -c "pg_dump -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -Fc" > backups\business_dashboard-%TS%.dump
-echo Backup creado en backups\
+set "OUT_FILE=backups\business_dashboard-%TS%.dump"
+
+docker compose --env-file "%ENV_FILE%" exec -T postgres sh -c "pg_dump -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\" -Fc" > "%OUT_FILE%"
+if errorlevel 1 (
+  if exist "%OUT_FILE%" del /q "%OUT_FILE%" >nul 2>&1
+  echo Backup failed.
+  exit /b 1
+)
+
+echo Backup created: %OUT_FILE%
