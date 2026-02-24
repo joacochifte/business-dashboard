@@ -3,6 +3,7 @@ using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Domain.Inventory;
 using BusinessDashboard.Domain.Common.Exceptions;
+using BusinessDashboard.Domain.Customers;
 
 namespace BusinessDashboard.Application.Sales;
 
@@ -32,7 +33,6 @@ public sealed class SalesService : ISalesService
             var customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value, ct);
             sale.SetCustomer(customer);
             customer.UpdateLastPurchaseDate(sale.CreatedAt, sale.Total);
-            await _customerRepo.UpdateAsync(customer, ct);
         }
 
         var movements = await AdjustStockAndCreateMovements(items, sale.CreatedAt, ct);
@@ -49,7 +49,6 @@ public sealed class SalesService : ISalesService
         {
             var customer = await _customerRepo.GetByIdAsync(sale.CustomerId.Value, ct);
             customer.RemovePurchase(sale.Total);
-            await _customerRepo.UpdateAsync(customer, ct);
         }
         
         var movements = await RestoreStockAndCreateMovementsForSaleDelete(sale.Items.ToList(), DateTime.UtcNow, ct);
@@ -78,6 +77,7 @@ public sealed class SalesService : ISalesService
         var oldItems = sale.Items.ToList();
         var oldTotal = sale.Total;
         var oldCustomerId = sale.CustomerId;
+        Customer? resolvedNewCustomer = null;
         
         var items = CreateItemsFromRequest(request.Items).ToList();
 
@@ -100,22 +100,20 @@ public sealed class SalesService : ISalesService
             {
                 var oldCustomer = await _customerRepo.GetByIdAsync(oldCustomerId.Value, ct);
                 oldCustomer.RemovePurchase(oldTotal);
-                await _customerRepo.UpdateAsync(oldCustomer, ct);
             }
             
             // Add to new customer
             if (newCustomerId.HasValue)
             {
-                var newCustomer = await _customerRepo.GetByIdAsync(newCustomerId.Value, ct);
-                newCustomer.UpdateLastPurchaseDate(sale.CreatedAt, newTotal);
-                await _customerRepo.UpdateAsync(newCustomer, ct);
+                resolvedNewCustomer = await _customerRepo.GetByIdAsync(newCustomerId.Value, ct);
+                resolvedNewCustomer.UpdateLastPurchaseDate(sale.CreatedAt, newTotal);
             }
         }
 
         if (request.CustomerId.HasValue)
         {
-            var customer = await _customerRepo.GetByIdAsync(request.CustomerId.Value, ct);
-            sale.SetCustomer(customer);
+            resolvedNewCustomer ??= await _customerRepo.GetByIdAsync(request.CustomerId.Value, ct);
+            sale.SetCustomer(resolvedNewCustomer);
         }
         else
         {

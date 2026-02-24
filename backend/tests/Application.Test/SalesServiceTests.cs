@@ -2,6 +2,7 @@ using BusinessDashboard.Application.Sales;
 using BusinessDashboard.Domain.Inventory;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Domain.Products;
+using BusinessDashboard.Domain.Customers;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using BusinessDashboard.Infrastructure.Sales;
 using Moq;
@@ -226,5 +227,99 @@ public class SalesServiceTests
         _repo.Verify(r => r.GetByIdAsync(saleId), Times.Once);
         _products.Verify(r => r.GetByIdAsync(productId), Times.Once);
         _repo.Verify(r => r.UpdateAsync(sale, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task CreateSaleAsync_WithCustomer_ShouldUpdateCustomerStatsWithoutDirectCustomerSave()
+    {
+        var productId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        var customer = new Customer("John Doe");
+        var request = new SaleCreationDto
+        {
+            Items = new List<SaleItemDto>
+            {
+                new SaleItemDto { ProductId = productId, Quantity = 1, UnitPrice = 100m }
+            },
+            Total = 100m,
+            CustomerId = customerId
+        };
+
+        _products.Setup(r => r.GetByIdAsync(productId)).ReturnsAsync(new Product("P1", 10m, initialStock: 10));
+        _customers.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+        _repo.Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await _service.CreateSaleAsync(request);
+
+        Assert.AreEqual(1, customer.TotalPurchases);
+        Assert.AreEqual(100m, customer.TotalLifetimeValue);
+        _customers.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task UpdateSaleAsync_WithCustomerChange_ShouldAdjustStatsWithoutDirectCustomerSave()
+    {
+        var saleId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var oldCustomer = new Customer("Old Customer");
+        var newCustomer = new Customer("New Customer");
+        var oldCustomerId = oldCustomer.Id;
+        var newCustomerId = newCustomer.Id;
+        var sale = new Sale(new[] { new SaleItem(productId, 1, 50m) }, oldCustomerId, null, false);
+
+        sale.SetCustomer(oldCustomer);
+        oldCustomer.UpdateLastPurchaseDate(sale.CreatedAt, sale.Total);
+
+        var request = new SaleUpdateDto
+        {
+            Items = new List<SaleItemDto>
+            {
+                new SaleItemDto { ProductId = productId, Quantity = 1, UnitPrice = 60m }
+            },
+            Total = 60m,
+            CustomerId = newCustomerId,
+            PaymentMethod = "Cash"
+        };
+
+        _repo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
+        _customers.Setup(r => r.GetByIdAsync(oldCustomerId, It.IsAny<CancellationToken>())).ReturnsAsync(oldCustomer);
+        _customers.Setup(r => r.GetByIdAsync(newCustomerId, It.IsAny<CancellationToken>())).ReturnsAsync(newCustomer);
+        _repo.Setup(r => r.UpdateAsync(sale, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await _service.UpdateSaleAsync(saleId, request);
+
+        Assert.AreEqual(0, oldCustomer.TotalPurchases);
+        Assert.AreEqual(0m, oldCustomer.TotalLifetimeValue);
+        Assert.AreEqual(1, newCustomer.TotalPurchases);
+        Assert.AreEqual(60m, newCustomer.TotalLifetimeValue);
+        _customers.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task DeleteSaleAsync_WithCustomer_ShouldAdjustStatsWithoutDirectCustomerSave()
+    {
+        var saleId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var customer = new Customer("John Doe");
+        var customerId = customer.Id;
+        var sale = new Sale(new[] { new SaleItem(productId, 2, 10m) }, customerId, null, false);
+        var product = new Product("P1", 10m, initialStock: 5);
+
+        sale.SetCustomer(customer);
+        customer.UpdateLastPurchaseDate(sale.CreatedAt, sale.Total);
+
+        _repo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
+        _products.Setup(r => r.GetByIdAsync(productId)).ReturnsAsync(product);
+        _customers.Setup(r => r.GetByIdAsync(customerId, It.IsAny<CancellationToken>())).ReturnsAsync(customer);
+        _repo.Setup(r => r.DeleteAsync(saleId, It.IsAny<IReadOnlyList<InventoryMovement>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await _service.DeleteSaleAsync(saleId);
+
+        Assert.AreEqual(0, customer.TotalPurchases);
+        Assert.AreEqual(0m, customer.TotalLifetimeValue);
+        _customers.Verify(r => r.UpdateAsync(It.IsAny<Customer>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
