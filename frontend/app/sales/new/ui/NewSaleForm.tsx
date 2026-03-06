@@ -32,7 +32,7 @@ export default function NewSaleForm() {
   const router = useRouter();
 
   const [products, setProducts] = useState<ProductDto[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+const [productsLoading, setProductsLoading] = useState(true);
   const [customers, setCustomers] = useState<CustomerDto[]>([]);
 
   const [form, setForm] = useState<FormState>({
@@ -246,8 +246,8 @@ export default function NewSaleForm() {
         <div className="space-y-3 p-4">
           {form.items.map((it, idx) => (
             <div key={idx} className="space-y-2">
-              <div className="grid gap-3 md:grid-cols-12">
-                <label className="grid gap-1 md:col-span-6">
+              <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_112px]">
+                <label className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Product</span>
                   <select
                     value={it.productId}
@@ -264,14 +264,14 @@ export default function NewSaleForm() {
                   </select>
                 </label>
 
-                <span className="grid gap-1 md:col-span-2">
+                <span className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Unit price</span>
                   <span className="rounded-xl border border-black/10 bg-white/40 px-3 py-2 text-sm font-medium text-neutral-800">
                     {it.unitPrice || "--"}
                   </span>
                 </span>
 
-                <span className="grid gap-1 md:col-span-2">
+                <span className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Qty</span>
                   <input
                     value={it.quantity}
@@ -282,7 +282,7 @@ export default function NewSaleForm() {
                   />
                 </span>
 
-                <div className="flex items-end md:col-span-2">
+                <div className="flex items-end md:col-span-1">
                   <button
                     type="button"
                     onClick={() => removeItem(idx)}

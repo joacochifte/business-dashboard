@@ -13,8 +13,7 @@ export default function PageShell({ children }: Props) {
         <div className="absolute bottom-[-200px] left-[30%] h-[460px] w-[460px] rounded-full bg-neutral-200/40 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 py-10">{children}</div>
+      <div className="relative mx-auto max-w-6xl px-6 pb-10 pt-28">{children}</div>
     </main>
   );
 }
-

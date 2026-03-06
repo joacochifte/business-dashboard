@@ -18,7 +18,7 @@ export default function HomePage() {
         <div className="absolute right-[-120px] top-[6%] h-[280px] w-[280px] rounded-full bg-rose-200/35 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-6 py-10">
+      <div className="relative mx-auto max-w-5xl px-6 pb-10 pt-28">
         <header className="flex items-center justify-between">
           <div className="space-y-1">
             <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Business Dashboard</h1>

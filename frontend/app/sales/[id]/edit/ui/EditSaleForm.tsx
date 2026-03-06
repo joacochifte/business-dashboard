@@ -258,8 +258,8 @@ export default function EditSaleForm({ sale }: Props) {
         <div className="space-y-3 p-4">
           {form.items.map((it, idx) => (
             <div key={idx} className="space-y-2">
-              <div className="grid gap-3 md:grid-cols-12">
-                <label className="grid gap-1 md:col-span-6">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_112px]">
+                <label className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Product</span>
                   <select
                     value={it.productId}
@@ -276,7 +276,7 @@ export default function EditSaleForm({ sale }: Props) {
                   </select>
                 </label>
 
-                <label className="grid gap-1 md:col-span-2">
+                <label className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Unit price</span>
                   <input
                     value={it.unitPrice}
@@ -287,7 +287,7 @@ export default function EditSaleForm({ sale }: Props) {
                   />
                 </label>
 
-                <span className="grid gap-1 md:col-span-2">
+                <span className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Qty</span>
                   <input
                     value={it.quantity}
@@ -298,7 +298,7 @@ export default function EditSaleForm({ sale }: Props) {
                   />
                 </span>
 
-                <div className="flex items-end md:col-span-2">
+                <div className="flex items-end md:col-span-1">
                   <button
                     type="button"
                     onClick={() => removeItem(idx)}

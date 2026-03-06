@@ -1,5 +1,6 @@
 import { getDashboardSummary, getSalesByPeriod, getTopProducts, getSalesByCustomer, getSpendingByCustomer } from "@/lib/dashboard.api";
 import { getCosts, type CostSummaryDto } from "@/lib/costs.api";
+import { getSalesByDebt, type SaleDto } from "@/lib/sales.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
 import CostsByPeriodChart from "./ui/CostsByPeriodChart";
 import PageShell from "../ui/PageShell";
@@ -73,6 +74,23 @@ function getPeriodStartForCost(iso: string, groupBy: "day" | "month") {
   }
 
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)).toISOString();
+}
+
+function isWithinRange(iso: string, from?: string, to?: string) {
+  const value = new Date(iso).getTime();
+  if (Number.isNaN(value)) return false;
+
+  if (from) {
+    const fromValue = new Date(from).getTime();
+    if (!Number.isNaN(fromValue) && value < fromValue) return false;
+  }
+
+  if (to) {
+    const toValue = new Date(to).getTime();
+    if (!Number.isNaN(toValue) && value > toValue) return false;
+  }
+
+  return true;
 }
 
 export default async function DashboardPage({ searchParams }: Props) {
@@ -151,18 +169,22 @@ export default async function DashboardPage({ searchParams }: Props) {
               groupBy: "day" as const,
             };
 
-  const [summary, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer] = await Promise.all([
+  const [summary, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer, debtSales] = await Promise.all([
     getDashboardSummary({ from: range.from, to: range.to }),
     getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to, tzOffsetMinutes }),
     getTopProducts({ limit: 10, from: range.from, to: range.to, sortBy: topProductsSortBy }),
     getCosts({ startDate: range.from, endDate: range.to }),
     getSalesByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
     getSpendingByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
+    getSalesByDebt(true),
   ]);
 
   const points = byPeriod.points ?? [];
   const maxRevenue = points.reduce((m, p) => Math.max(m, p.revenue), 0);
   const costsTotal = costs.reduce((sum, c) => sum + c.amount, 0);
+  const debtsTotal = (debtSales as SaleDto[])
+    .filter((sale) => isWithinRange(sale.createdAt, range.from, range.to))
+    .reduce((sum, sale) => sum + sale.total, 0);
 
   const costsGroupBy: "day" | "month" = range.groupBy === "month" ? "month" : "day";
   const costPointsMap = new Map<string, number>();
@@ -268,7 +290,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         </form>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-5">
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="text-xs font-medium text-neutral-600">Revenue total</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.revenueTotal)}</div>
@@ -299,6 +321,12 @@ export default async function DashboardPage({ searchParams }: Props) {
           <div className="text-xs font-medium text-neutral-600">Average ticket</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.avgTicket)}</div>
           <div className="mt-1 text-xs text-neutral-500">Revenue / sales</div>
+        </div>
+
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+          <div className="text-xs font-medium text-neutral-600">Total debts</div>
+          <div className="mt-2 text-2xl font-semibold tabular-nums text-amber-800">{formatMoney(debtsTotal)}</div>
+          <div className="mt-1 text-xs text-neutral-500">Debts in selected period</div>
         </div>
       </section>
 

@@ -165,7 +165,7 @@ export default async function InventoryPage({ searchParams }: Props) {
         </form>
       </section>
 
-      <section className="overflow-x-auto rounded-2xl border border-black/10 bg-white/60 shadow-sm backdrop-blur">
+      <section className="mt-6 overflow-x-auto rounded-2xl border border-black/10 bg-white/60 shadow-sm backdrop-blur">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-white/40 text-left">
