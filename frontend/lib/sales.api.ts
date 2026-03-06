@@ -25,6 +25,7 @@ export type SaleCreationDto = {
   customerId?: string | null;
   paymentMethod?: string | null;
   isDebt: boolean;
+  createdAt?: IsoDateTime | null;
 };
 
 export type SaleUpdateDto = {
@@ -34,6 +35,7 @@ export type SaleUpdateDto = {
   customerId?: string | null;
   paymentMethod?: string | null;
   isDebt: boolean;
+  createdAt?: IsoDateTime | null;
 };
 
 // Server (pages / server components)

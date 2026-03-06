@@ -20,11 +20,12 @@ public class Sale : Entity
 
     private Sale() { }
 
-    public Sale(IEnumerable<SaleItem> items, Guid? customerId = null, string? paymentMethod = null, bool isDebt = false)
+    public Sale(IEnumerable<SaleItem> items, Guid? customerId = null, string? paymentMethod = null, bool isDebt = false, DateTime? createdAt = null)
     {
         if (items == null || !items.Any())
             throw new InvalidOperationException("A sale must have at least one item.");
 
+        CreatedAt = NormalizeUtc(createdAt ?? DateTime.UtcNow);
         CustomerId = customerId;
         PaymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? null : paymentMethod.Trim();
         IsDebt = isDebt;
@@ -51,6 +52,11 @@ public class Sale : Entity
         IsDebt = isDebt;
     }
 
+    public void SetCreatedAt(DateTime createdAt)
+    {
+        CreatedAt = NormalizeUtc(createdAt);
+    }
+
     public void AddItem(SaleItem item)
     {
         if (item == null)
@@ -73,4 +79,7 @@ public class Sale : Entity
     {
         Total = _items.Sum(i => i.LineTotal);
     }
+
+    private static DateTime NormalizeUtc(DateTime dt) =>
+        dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 }

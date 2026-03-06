@@ -7,6 +7,7 @@ import { fetchJson } from "@/lib/api";
 import type { ProductDto } from "@/lib/products.api";
 import type { CustomerDto } from "@/lib/customers.api";
 import { createSale, type SaleCreationDto, type SaleItemDto } from "@/lib/sales.api";
+import DateFilterInput from "@/app/ui/DateFilterInput";
 
 type FormItem = {
   productId: string;
@@ -20,6 +21,7 @@ type FormState = {
   customerId: string;
   paymentMethod: string;
   isDebt: boolean;
+  saleDate: string;
   items: FormItem[];
 };
 
@@ -28,17 +30,37 @@ function toNumber(v: string) {
   return Number.isFinite(n) ? n : NaN;
 }
 
+function todayLocalDateInputValue() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function localDateToUtcIso(dateInput: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const localNoon = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return localNoon.toISOString();
+}
+
 export default function NewSaleForm() {
   const router = useRouter();
 
   const [products, setProducts] = useState<ProductDto[]>([]);
-const [productsLoading, setProductsLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [customers, setCustomers] = useState<CustomerDto[]>([]);
 
   const [form, setForm] = useState<FormState>({
     customerId: "",
     paymentMethod: "",
     isDebt: false,
+    saleDate: todayLocalDateInputValue(),
     items: [{ productId: "", unitPrice: "", quantity: "1", specialPrice: "", useSpecialPrice: false }],
   });
 
@@ -97,6 +119,7 @@ const [productsLoading, setProductsLoading] = useState(true);
 
   const clientValidationError = useMemo(() => {
     if (!form.items.length) return "At least one item is required.";
+    if (!localDateToUtcIso(form.saleDate)) return "A valid sale date is required.";
 
     for (let i = 0; i < form.items.length; i++) {
       const it = form.items[i];
@@ -115,7 +138,7 @@ const [productsLoading, setProductsLoading] = useState(true);
     }
 
     return null;
-  }, [form.items]);
+  }, [form.items, form.saleDate]);
 
   function setItem(idx: number, patch: Partial<FormItem>) {
     setForm((s) => ({
@@ -168,6 +191,7 @@ const [productsLoading, setProductsLoading] = useState(true);
       customerId: form.customerId || null,
       paymentMethod: form.paymentMethod.trim() ? form.paymentMethod.trim() : null,
       isDebt: form.isDebt,
+      createdAt: localDateToUtcIso(form.saleDate),
     };
 
     setSubmitting(true);
@@ -219,6 +243,8 @@ const [productsLoading, setProductsLoading] = useState(true);
             <option value="Transfer">Transfer</option>
           </select>
         </label>
+
+        <DateFilterInput label="Sale date" value={form.saleDate} onChange={(value) => setForm((s) => ({ ...s, saleDate: value }))} />
       </div>
 
       <label className="flex items-center gap-3">

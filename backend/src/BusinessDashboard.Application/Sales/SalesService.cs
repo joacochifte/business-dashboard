@@ -23,7 +23,8 @@ public sealed class SalesService : ISalesService
     public async Task<Guid> CreateSaleAsync(SaleCreationDto request, CancellationToken ct = default)
     {
         var items = CreateItemsFromRequest(request.Items).ToList();
-        var sale = new Sale(items, request.CustomerId, request.PaymentMethod, request.IsDebt);
+        var createdAt = ToUtc(request.CreatedAt) ?? DateTime.UtcNow;
+        var sale = new Sale(items, request.CustomerId, request.PaymentMethod, request.IsDebt, createdAt);
 
         if (request.Total > 0 && request.Total != sale.Total)
             throw new BusinessRuleException("Total mismatch.");
@@ -77,23 +78,26 @@ public sealed class SalesService : ISalesService
         var oldItems = sale.Items.ToList();
         var oldTotal = sale.Total;
         var oldCustomerId = sale.CustomerId;
+        var oldCreatedAt = sale.CreatedAt;
         Customer? resolvedNewCustomer = null;
         
         var items = CreateItemsFromRequest(request.Items).ToList();
 
         sale.ReplaceItems(items);
+        sale.SetCreatedAt(ToUtc(request.CreatedAt) ?? sale.CreatedAt);
 
         if (request.Total > 0 && request.Total != sale.Total)
             throw new BusinessRuleException("Total mismatch.");
 
-        var movements = await AdjustStockForSaleUpdateAndCreateMovements(oldItems, items, DateTime.UtcNow, ct);
+        var movements = await AdjustStockForSaleUpdateAndCreateMovements(oldItems, items, sale.CreatedAt, ct);
 
         // Update customer stats when customer or total changes
         var newCustomerId = request.CustomerId;
         var newTotal = sale.Total;
+        var newCreatedAt = sale.CreatedAt;
         
-        // If customer changed or total changed, update stats
-        if (oldCustomerId != newCustomerId || oldTotal != newTotal)
+        // If customer, total, or sale date changed, update stats
+        if (oldCustomerId != newCustomerId || oldTotal != newTotal || oldCreatedAt != newCreatedAt)
         {
             // Remove from old customer
             if (oldCustomerId.HasValue)
@@ -106,7 +110,7 @@ public sealed class SalesService : ISalesService
             if (newCustomerId.HasValue)
             {
                 resolvedNewCustomer = await _customerRepo.GetByIdAsync(newCustomerId.Value, ct);
-                resolvedNewCustomer.UpdateLastPurchaseDate(sale.CreatedAt, newTotal);
+                resolvedNewCustomer.UpdateLastPurchaseDate(newCreatedAt, newTotal);
             }
         }
 
@@ -286,4 +290,7 @@ public sealed class SalesService : ISalesService
         if (!product.IsActive)
             throw new InvalidOperationException($"Product {product.Name} is inactive.");
     }
+
+    private static DateTime? ToUtc(DateTime? dt) =>
+        dt.HasValue ? DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc) : null;
 }

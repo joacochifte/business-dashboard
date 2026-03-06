@@ -8,4 +8,5 @@ public class SaleUpdateDto
     public Guid? CustomerId { get; init; }
     public string? PaymentMethod { get; init; } = "";
     public bool IsDebt { get; init; }
+    public DateTime? CreatedAt { get; init; }
 }
