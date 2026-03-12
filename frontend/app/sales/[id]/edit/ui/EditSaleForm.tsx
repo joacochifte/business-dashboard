@@ -310,7 +310,7 @@ export default function EditSaleForm({ sale }: Props) {
         <div className="space-y-3 p-4">
           {form.items.map((it, idx) => (
             <div key={idx} className="space-y-2">
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_112px]">
+              <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_112px]">
                 <label className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Product</span>
                   <select
@@ -328,23 +328,19 @@ export default function EditSaleForm({ sale }: Props) {
                   </select>
                 </label>
 
-                <label className="grid gap-1 md:col-span-1">
+                <span className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Unit price</span>
-                  <input
-                    value={it.unitPrice}
-                    onChange={(e) => setItem(idx, { unitPrice: e.target.value })}
-                    className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
-                    inputMode="decimal"
-                    placeholder="0"
-                  />
-                </label>
+                  <span className="rounded-xl border border-black/10 bg-white/40 px-3 py-2 text-sm font-medium text-neutral-800">
+                    {it.unitPrice || "--"}
+                  </span>
+                </span>
 
                 <span className="grid gap-1 md:col-span-1">
                   <span className="text-xs font-medium text-neutral-700">Qty</span>
                   <input
                     value={it.quantity}
                     onChange={(e) => setItem(idx, { quantity: e.target.value })}
-                    className="w-full rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+                    className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
                     inputMode="numeric"
                     placeholder="1"
                   />
