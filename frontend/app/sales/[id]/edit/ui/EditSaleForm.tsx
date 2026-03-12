@@ -27,6 +27,7 @@ type FormState = {
   paymentMethod: string;
   isDebt: boolean;
   saleDate: string;
+  notes: string;
   items: FormItem[];
 };
 
@@ -77,6 +78,7 @@ export default function EditSaleForm({ sale }: Props) {
     paymentMethod: sale.paymentMethod ?? "",
     isDebt: sale.isDebt ?? false,
     saleDate: toLocalDateInputValue(sale.createdAt),
+    notes: sale.notes ?? "",
     items: (sale.items ?? []).map((it) => ({
       productId: it.productId ?? "",
       unitPrice: String(it.unitPrice ?? ""),
@@ -215,6 +217,7 @@ export default function EditSaleForm({ sale }: Props) {
       paymentMethod: form.paymentMethod.trim() ? form.paymentMethod.trim() : null,
       isDebt: form.isDebt,
       createdAt: localDateWithCurrentTimeIso(form.saleDate),
+      notes: form.notes.trim() ? form.notes.trim() : null,
     };
 
     setSubmitting(true);
@@ -268,6 +271,18 @@ export default function EditSaleForm({ sale }: Props) {
         </label>
 
         <DateFilterInput label="Sale date" value={form.saleDate} onChange={(value) => setForm((s) => ({ ...s, saleDate: value }))} />
+
+        <label className="md:col-span-2 grid gap-1">
+          <span className="text-sm font-medium text-neutral-800">Notes</span>
+          <textarea
+            value={form.notes}
+            onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
+            className="min-h-[80px] rounded-2xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+            placeholder="Internal notes (optional)"
+            maxLength={500}
+          />
+          <span className="text-xs text-neutral-500">{form.notes.length}/500</span>
+        </label>
       </div>
 
       <label className="flex items-center gap-3">

@@ -21,6 +21,12 @@ function toLocalDateInputValue(iso: string) {
   return `${year}-${month}-${day}`;
 }
 
+function previewNotes(notes?: string | null, max = 40) {
+  if (!notes || !notes.trim()) return "-";
+  const trimmed = notes.trim();
+  return trimmed.length > max ? `${trimmed.slice(0, max)}…` : trimmed;
+}
+
 type TotalSort = "newest" | "oldest" | "total-desc" | "total-asc";
 
 export default function SalesTable({ sales }: { sales: SaleDto[] }) {
@@ -35,9 +41,10 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
     const result = sales.filter((sale) => {
       const customer = sale.customerName?.toLowerCase() ?? "";
       const payment = sale.paymentMethod?.toLowerCase() ?? "";
+      const note = sale.notes?.toLowerCase() ?? "";
       const localDate = toLocalDateInputValue(sale.createdAt);
 
-      if (q && !customer.includes(q) && !payment.includes(q) && !localDate.includes(q)) {
+      if (q && !customer.includes(q) && !payment.includes(q) && !localDate.includes(q) && !note.includes(q)) {
         return false;
       }
 
@@ -108,6 +115,7 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
               <th className="px-4 py-3 font-medium text-neutral-700">Payment</th>
               <th className="px-4 py-3 text-right font-medium text-neutral-700">Items</th>
               <th className="px-4 py-3 text-right font-medium text-neutral-700">Total</th>
+              <th className="px-4 py-3 font-medium text-neutral-700">Notes</th>
               <th className="px-4 py-3 text-right font-medium text-neutral-700">Actions</th>
             </tr>
           </thead>
@@ -121,6 +129,7 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
                 <td className="px-4 py-3 text-neutral-900">{s.paymentMethod?.trim() ? s.paymentMethod : "-"}</td>
                 <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{s.items.length}</td>
                 <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{formatMoney(s.total)}</td>
+                <td className="px-4 py-3 text-neutral-900">{previewNotes(s.notes)}</td>
                 <td className="px-4 py-3">
                   <SaleRowActions saleId={s.id} />
                 </td>
@@ -128,14 +137,14 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
             ))}
             {filtered.length === 0 && sales.length > 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-sm text-neutral-600">
+                <td colSpan={7} className="px-4 py-12 text-center text-sm text-neutral-600">
                   No sales match the current filters.
                 </td>
               </tr>
             ) : null}
             {sales.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-sm text-neutral-600">
+                <td colSpan={7} className="px-4 py-12 text-center text-sm text-neutral-600">
                   No sales yet.
                 </td>
               </tr>

@@ -10,6 +10,7 @@ export type SaleDto = {
   isDebt: boolean;
   total: number;
   createdAt: IsoDateTime;
+  notes?: string | null;
 };
 
 export type SaleItemDto = {
@@ -26,6 +27,7 @@ export type SaleCreationDto = {
   paymentMethod?: string | null;
   isDebt: boolean;
   createdAt?: IsoDateTime | null;
+  notes?: string | null;
 };
 
 export type SaleUpdateDto = {
@@ -36,6 +38,7 @@ export type SaleUpdateDto = {
   paymentMethod?: string | null;
   isDebt: boolean;
   createdAt?: IsoDateTime | null;
+  notes?: string | null;
 };
 
 // Server (pages / server components)
