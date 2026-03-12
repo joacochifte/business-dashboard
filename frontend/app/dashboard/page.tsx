@@ -318,19 +318,8 @@ export default async function DashboardPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
-        <div className="space-y-0.5">
-          <h2 className="text-sm font-semibold text-neutral-900">Costs by period</h2>
-          <p className="text-xs text-neutral-600">Grouped by: {costsGroupBy}</p>
-        </div>
-
-        <div className="mt-4">
-          <CostsByPeriodChart points={costsByPeriodPoints} groupBy={costsGroupBy} />
-        </div>
-      </section>
-
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur lg:row-span-2">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-neutral-900">Sales by period</h2>
@@ -370,7 +359,18 @@ export default async function DashboardPage({ searchParams }: Props) {
                   </div>
                 );
               })
-            )}
+              )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-semibold text-neutral-900">Costs by period</h2>
+            <p className="text-xs text-neutral-600">Grouped by: {costsGroupBy}</p>
+          </div>
+
+          <div className="mt-4">
+            <CostsByPeriodChart points={costsByPeriodPoints} groupBy={costsGroupBy} />
           </div>
         </div>
 
