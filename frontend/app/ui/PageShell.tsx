@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
+import AppNav from "./AppNav";
 
 type Props = {
   children: ReactNode;
+  actions?: ReactNode;
 };
 
-export default function PageShell({ children }: Props) {
+export default function PageShell({ children, actions }: Props) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(1200px_600px_at_20%_-10%,rgba(245,240,235,1),transparent),radial-gradient(900px_500px_at_90%_10%,rgba(244,216,208,0.9),transparent),linear-gradient(to_bottom,#fffbf4,#f4eed7)]">
       <div className="pointer-events-none absolute inset-0">
@@ -13,7 +15,13 @@ export default function PageShell({ children }: Props) {
         <div className="absolute bottom-[-200px] left-[30%] h-[460px] w-[460px] rounded-full bg-neutral-200/40 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 pb-10 pt-28">{children}</div>
+      <div className="relative mx-auto max-w-6xl px-6 pb-10 pt-28">
+        <AppNav />
+        {actions ? (
+          <div className="mt-6 flex flex-wrap items-center justify-end gap-2">{actions}</div>
+        ) : null}
+        <div className="mt-6">{children}</div>
+      </div>
     </main>
   );
 }

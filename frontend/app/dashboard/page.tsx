@@ -4,7 +4,6 @@ import { getSalesByDebt, type SaleDto } from "@/lib/sales.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
 import CostsByPeriodChart from "./ui/CostsByPeriodChart";
 import PageShell from "../ui/PageShell";
-import AppNav from "../ui/AppNav";
 import ClientDateTime from "../ui/ClientDateTime";
 import TzOffsetField from "./ui/TzOffsetField";
 
@@ -198,19 +197,8 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <PageShell>
-      <header className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Dashboard</h1>
-          <p className="text-sm text-neutral-600">
-            High-level metrics for your business.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <AppNav className="hidden md:flex" />
-        </div>
-      </header>
-
-      <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+      <p className="text-sm text-neutral-600">High-level metrics for your business.</p>
+      <section className="mt-4 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
         <form className="grid gap-3 md:grid-cols-12" method="GET">
           <TzOffsetField />
           <div className="md:col-span-4">

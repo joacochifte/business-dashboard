@@ -4,7 +4,6 @@ import { getProducts, type ProductDto } from "@/lib/products.api";
 import { getInventoryMovements, type InventoryMovementItemDto } from "@/lib/inventory.api";
 import { toIsoUtcEndOfDay, toIsoUtcStartOfDay } from "@/lib/api";
 import PageShell from "../ui/PageShell";
-import AppNav from "../ui/AppNav";
 import ClientDateTime from "../ui/ClientDateTime";
 
 type Props = {
@@ -77,24 +76,18 @@ export default async function InventoryPage({ searchParams }: Props) {
   }
 
   return (
-    <PageShell>
-      <header className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Inventory</h1>
-          <p className="text-sm text-neutral-600">Movements history (IN / OUT / ADJUST).</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <AppNav className="hidden md:flex" />
-          <Link
-            href="/inventory/adjust"
-            className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90"
-          >
-            Adjust stock
-          </Link>
-        </div>
-      </header>
-
-      <section className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+    <PageShell
+      actions={
+        <Link
+          href="/inventory/adjust"
+          className="rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-black/90"
+        >
+          Adjust stock
+        </Link>
+      }
+    >
+      <p className="text-sm text-neutral-600">Movements history (IN / OUT / ADJUST).</p>
+      <section className="mt-4 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
         <form className="grid gap-3 md:grid-cols-12" method="GET">
           <div className="md:col-span-4">
             <label className="grid gap-1">

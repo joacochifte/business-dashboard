@@ -19,14 +19,7 @@ export default function HomePage() {
       </div>
 
       <div className="relative mx-auto max-w-5xl px-6 pb-10 pt-28">
-        <header className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">Business Dashboard</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <AppNav className="hidden md:flex" />
-          </div>
-        </header>
+        <AppNav />
 
         <section className="mt-16 text-center">
           <h1 className="text-balance text-4xl font-semibold tracking-tight text-neutral-950 sm:text-5xl">
