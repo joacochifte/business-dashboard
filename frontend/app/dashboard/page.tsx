@@ -278,7 +278,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         </form>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="text-xs font-medium text-neutral-600">Revenue total</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.revenueTotal)}</div>
