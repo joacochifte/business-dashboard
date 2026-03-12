@@ -14,10 +14,10 @@ public class Sale : Entity
     public decimal Total { get; private set; }
     public Guid? CustomerId { get; private set; }
     public Customer? Customer { get; private set; }
-    public string? CustomerName {get; private set; } = "";
+    public string? CustomerName { get; private set; } = "";
     public string? PaymentMethod { get; private set; }
     public bool IsDebt { get; private set; }
-
+    public string? Notes { get; private set; }
     private Sale() { }
 
     public Sale(IEnumerable<SaleItem> items, Guid? customerId = null, string? paymentMethod = null, bool isDebt = false, DateTime? createdAt = null)
@@ -80,6 +80,11 @@ public class Sale : Entity
         Total = _items.Sum(i => i.LineTotal);
     }
 
+    public void SetNotes(string? notes)
+    {
+        Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+    }
     private static DateTime NormalizeUtc(DateTime dt) =>
         dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 }
+
