@@ -103,7 +103,7 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-white/40 text-left">
-              <th className="px-4 py-3 font-medium text-neutral-700">Date (local)</th>
+              <th className="px-4 py-3 font-medium text-neutral-700">Date</th>
               <th className="px-4 py-3 font-medium text-neutral-700">Customer</th>
               <th className="px-4 py-3 font-medium text-neutral-700">Payment</th>
               <th className="px-4 py-3 text-right font-medium text-neutral-700">Items</th>
