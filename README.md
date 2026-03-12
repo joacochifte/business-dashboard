@@ -1,135 +1,105 @@
 # Business Dashboard
 
-Portfolio project: a realistic business dashboard for a small family business.
+Full-stack portfolio app that simulates a small-business control panel: product catalog, inventory, sales (with debts and internal notes), customers, costs, and a metrics dashboard.
 
-It covers the essentials you would expect in a real system: product catalog, optional stock tracking with inventory movements, sales, customer management, debt tracking, and a dashboard with metrics and charts.
+## Features
 
-## Features (current)
+- **Products**: CRUD with optional stock tracking (items with `stock = null` don’t affect inventory).
+- **Inventory**: manual adjustments plus a movement log filtered by product and date range.
+- **Sales**:
+  - Multiple items per sale with optional “special price”.
+  - Optional customer, notes and payment method.
+  - Debt flag per sale.
+  - Stock validation/discount for tracked products.
+- **Customers**: CRUD, search/sort, contact info, lifetime value and last purchase stats.
+- **Debts**: dedicated page (`/debts`) backed by the sales debt filter.
+- **Costs**: CRUD for operational expenses.
+- **Dashboard**:
+  - KPIs (revenue, sales count, average ticket, debts).
+  - Sales by period (daily/monthly/yearly/all time).
+  - Costs by period (same range as sales).
+  - Top products (by revenue or quantity).
+  - Sales + costs widgets rearranged for a denser layout.
+- **API**: ASP.NET Core 8 with ProblemDetails responses and Swagger in Development.
 
-- Products
-  - Create / edit / delete
-  - Optional stock tracking (`stock = null` means *untracked*, useful for services)
-- Inventory
-  - Manual stock adjustments
-  - Movements list (filter by product and date range)
-- Sales
-  - Create / edit / delete sales with multiple items
-  - Optional customer per sale and payment method
-  - Sales can be marked as debt (`isDebt`)
-  - Validates stock and discounts it (tracked products only)
-- Customers
-  - Create / edit / delete customer profiles
-  - Optional contact info (email, phone) and birthday
-  - Customer list with search/sort and purchase stats (purchases + lifetime value)
-- Debts
-  - Dedicated debts page (`/debts`)
-  - Uses sales debt filter (`/sales?isDebt=true`) to list debt sales
-- Costs
-  - Create / edit / delete
-- Dashboard
-  - Summary: revenue total, sales count, average ticket
-  - Sales by period (day/month/year/all time)
-  - Top products (by revenue)
-  - Costs by period
-  - Total Gains (Revenue - Costs) by period
-  - Debt sales can be excluded from dashboard aggregates
-- API
-  - Swagger in Development
-  - Consistent error payloads (ProblemDetails via middleware)
+## Tech Stack
 
-## Tech stack
+- **Backend**: .NET 8 Web API + EF Core.
+- **Frontend**: Next.js (App Router) + Tailwind CSS.
+- **Database**: PostgreSQL 16 (Docker).
+- **Tests**: MSTest.
 
-- Backend: .NET 8 Web API
-- Frontend: Next.js (App Router) + Tailwind CSS
-- Database: PostgreSQL 16 (Docker)
-- Tests: MSTest
+## Getting Started
 
-## Getting started (local dev)
+### Environment files
 
-### Prerequisites
+- Copy `.env.local.example` → `.env` (repo root) for Docker services (ports, Postgres credentials, etc.).
+- Copy `frontend/.env.local.example` → `frontend/.env.local` and set `NEXT_PUBLIC_API_BASE_URL` to the backend URL you’ll run.
 
-- .NET SDK 8
-- Node.js (recommended: 20+)
-- Docker (for Postgres)
-
-### 1) Start Postgres (Docker)
-
-From the repo root:
+### Option 1 — Everything via Docker
 
 ```bash
-docker compose up -d
+# from repo root
+docker compose up -d              # reuse existing images
+# or force rebuild if the code changed
+docker compose up -d --build
 ```
 
-Postgres settings (from `docker-compose.yml`):
+On Windows you can run `ops\start-tester.bat` (pass `--build` to trigger image rebuild).
 
-- Host: `localhost`
-- Port: `5433`
-- Database: `business_dashboard`
-- User: `postgres`
-- Password: `postgres`
+Default ports (see `.env`):
 
-### 2) Run backend API
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5126
+- Postgres: localhost:5433 (`business_dashboard` / `postgres` / `postgres`)
 
-```bash
-cd backend
-dotnet restore
-dotnet run --project src/BusinessDashboard.Api
-```
+### Option 2 — Hybrid dev (Postgres in Docker, apps local)
 
-- API base URL: check console output (Kestrel picks an available port)
-- Swagger: `http://localhost:<port>/swagger`
+1. Start DB only:
+   ```bash
+   docker compose up -d postgres
+   ```
+2. Backend:
+   ```bash
+   cd backend
+   dotnet restore
+   dotnet run --project src/BusinessDashboard.Api
+   ```
+3. Frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+4. Ensure `frontend/.env.local` points to the actual backend port (`NEXT_PUBLIC_API_BASE_URL=http://localhost:<kestrel-port>`).
 
-Connection string is in:
+### EF Core migrations
 
-- `backend/src/BusinessDashboard.Api/appsettings.json`
-
-#### Apply migrations
-
-If you have the EF Core tools installed:
+Apply the latest migration (e.g., the `Notes` column on `Sales`) with:
 
 ```bash
 dotnet ef database update \
-  --project src/BusinessDashboard.Infrastructure \
-  --startup-project src/BusinessDashboard.Api
+  -p backend/src/BusinessDashboard.Infrastructure/BusinessDashboard.Infrastructure.csproj \
+  -s backend/src/BusinessDashboard.Api/BusinessDashboard.Api.csproj
 ```
 
-If you don't:
+Install the CLI if needed: `dotnet tool install --global dotnet-ef`.
+
+## Useful scripts
+
+- `ops/start-tester.bat` → spin up the whole stack (pass `--build` to rebuild images).
+- `ops/stop-tester.bat` → stop containers.
+- `ops/backup-data.bat` / `ops/restore-data.bat` → backup/restore Postgres inside Docker.
+
+## Tests
 
 ```bash
-dotnet tool install --global dotnet-ef
-```
-
-### 3) Run frontend (Next.js)
-
-```bash
-cd frontend
-npm install
-```
-
-Create `frontend/.env.local`:
-
-```bash
-NEXT_PUBLIC_API_BASE_URL=http://localhost:<api-port>
-```
-
-Then:
-
-```bash
-npm run dev
-```
-
-Open:
-
-- `http://localhost:3000`
-
-## Running tests
-
-From `backend/`:
-
-```bash
+cd backend
 dotnet test
 ```
 
-## Notes
+## Additional notes
 
-- Timestamps are stored in the database as UTC. The UI renders dates using the browser's local timezone.
+- Timestamps are stored in UTC; the UI renders them using the browser’s locale.
+- There’s a single responsive navbar (`AppNav`). Avoid duplicating it.
+- When using `npm run dev`, stop the `frontend` container to ensure you’re hitting the Vite/Next dev server and not stale Docker bundles.
