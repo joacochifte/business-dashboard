@@ -15,7 +15,10 @@ if not exist "%ENV_FILE%" (
 set "FRONTEND_HOST_PORT=3000"
 for /f "tokens=1,* delims==" %%A in ('findstr /B /I "FRONTEND_HOST_PORT=" "%ENV_FILE%"') do set "FRONTEND_HOST_PORT=%%B"
 
-docker compose --env-file "%ENV_FILE%" up -d --build
+set "BUILD_FLAG="
+if /I "%1"=="--build" set "BUILD_FLAG=--build"
+
+docker compose --env-file "%ENV_FILE%" up -d %BUILD_FLAG%
 if errorlevel 1 (
   echo Failed to start containers.
   exit /b 1

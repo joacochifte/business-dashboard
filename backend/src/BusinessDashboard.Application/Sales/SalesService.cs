@@ -284,7 +284,8 @@ public sealed class SalesService : ISalesService
             PaymentMethod = sale.PaymentMethod,
             Total = sale.Total,
             IsDebt = sale.IsDebt,
-            CreatedAt = sale.CreatedAt
+            CreatedAt = sale.CreatedAt,
+            Notes = sale.Notes
         };
     }
     private void IsProductActive(Domain.Products.Product product)

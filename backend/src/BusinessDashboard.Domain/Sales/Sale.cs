@@ -29,6 +29,7 @@ public class Sale : Entity
         CustomerId = customerId;
         PaymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? null : paymentMethod.Trim();
         IsDebt = isDebt;
+        SetNotes(notes);
 
         foreach (var item in items)
         {
@@ -87,4 +88,3 @@ public class Sale : Entity
     private static DateTime NormalizeUtc(DateTime dt) =>
         dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
 }
-
