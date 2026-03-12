@@ -20,7 +20,7 @@ public class Sale : Entity
     public string? Notes { get; private set; }
     private Sale() { }
 
-    public Sale(IEnumerable<SaleItem> items, Guid? customerId = null, string? paymentMethod = null, bool isDebt = false, DateTime? createdAt = null)
+    public Sale(IEnumerable<SaleItem> items, Guid? customerId = null, string? paymentMethod = null, bool isDebt = false, DateTime? createdAt = null, string? notes = "")
     {
         if (items == null || !items.Any())
             throw new InvalidOperationException("A sale must have at least one item.");

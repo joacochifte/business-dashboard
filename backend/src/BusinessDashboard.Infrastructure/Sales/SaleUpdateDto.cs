@@ -9,4 +9,6 @@ public class SaleUpdateDto
     public string? PaymentMethod { get; init; } = "";
     public bool IsDebt { get; init; }
     public DateTime? CreatedAt { get; init; }
+
+    public string? Notes { get; init; } = "";
 }

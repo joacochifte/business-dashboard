@@ -25,6 +25,7 @@ public sealed class SalesService : ISalesService
         var items = CreateItemsFromRequest(request.Items).ToList();
         var createdAt = ToUtc(request.CreatedAt) ?? DateTime.UtcNow;
         var sale = new Sale(items, request.CustomerId, request.PaymentMethod, request.IsDebt, createdAt);
+        sale.SetNotes(request.Notes);
 
         if (request.Total > 0 && request.Total != sale.Total)
             throw new BusinessRuleException("Total mismatch.");
@@ -35,7 +36,7 @@ public sealed class SalesService : ISalesService
             sale.SetCustomer(customer);
             customer.UpdateLastPurchaseDate(sale.CreatedAt, sale.Total);
         }
-
+        
         var movements = await AdjustStockAndCreateMovements(items, sale.CreatedAt, ct);
         await _saleRepo.AddAsync(sale, movements, ct);
         return sale.Id;
@@ -123,9 +124,10 @@ public sealed class SalesService : ISalesService
         {
             sale.SetCustomer(null);
         }
-
+        
         sale.SetPaymentMethod(request.PaymentMethod);
         sale.SetIsDebt(request.IsDebt);
+        sale.SetNotes(request.Notes);
         await _saleRepo.UpdateAsync(sale, movements, ct);
     }
 
