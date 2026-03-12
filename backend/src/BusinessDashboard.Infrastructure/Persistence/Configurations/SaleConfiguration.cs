@@ -31,6 +31,9 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.PaymentMethod)
             .HasMaxLength(50);
 
+        builder.Property(s => s.Notes)
+            .HasMaxLength(500);
+
         builder.Property(s => s.IsDebt)
             .HasDefaultValue(false)
             .IsRequired();
