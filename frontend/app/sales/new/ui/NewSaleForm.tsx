@@ -38,15 +38,24 @@ function todayLocalDateInputValue() {
   return `${year}-${month}-${day}`;
 }
 
-function localDateToUtcIso(dateInput: string) {
+function localDateWithCurrentTimeIso(dateInput: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput);
   if (!match) return null;
 
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
-  const localNoon = new Date(year, month - 1, day, 12, 0, 0, 0);
-  return localNoon.toISOString();
+  const now = new Date();
+  const combined = new Date(
+    year,
+    month - 1,
+    day,
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+    now.getMilliseconds()
+  );
+  return combined.toISOString();
 }
 
 export default function NewSaleForm() {
@@ -119,7 +128,7 @@ export default function NewSaleForm() {
 
   const clientValidationError = useMemo(() => {
     if (!form.items.length) return "At least one item is required.";
-    if (!localDateToUtcIso(form.saleDate)) return "A valid sale date is required.";
+    if (!localDateWithCurrentTimeIso(form.saleDate)) return "A valid sale date is required.";
 
     for (let i = 0; i < form.items.length; i++) {
       const it = form.items[i];
@@ -191,7 +200,7 @@ export default function NewSaleForm() {
       customerId: form.customerId || null,
       paymentMethod: form.paymentMethod.trim() ? form.paymentMethod.trim() : null,
       isDebt: form.isDebt,
-      createdAt: localDateToUtcIso(form.saleDate),
+      createdAt: localDateWithCurrentTimeIso(form.saleDate),
     };
 
     setSubmitting(true);
