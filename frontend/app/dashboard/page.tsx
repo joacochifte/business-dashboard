@@ -1,6 +1,5 @@
-import { getDashboardSummary, getSalesByPeriod, getTopProducts, getSalesByCustomer, getSpendingByCustomer } from "@/lib/dashboard.api";
+import { getDashboardOverview, getSalesByPeriod, getTopProducts, getSalesByCustomer, getSpendingByCustomer } from "@/lib/dashboard.api";
 import { getCosts, type CostSummaryDto } from "@/lib/costs.api";
-import { getSalesByDebt, type SaleDto } from "@/lib/sales.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
 import PageShell from "../ui/PageShell";
 import ClientDateTime from "../ui/ClientDateTime";
@@ -8,6 +7,57 @@ import TzOffsetField from "./ui/TzOffsetField";
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+}
+
+function formatPercent(v: number) {
+  return `${v.toFixed(1)}%`;
+}
+
+function formatDeltaPct(v: number | null | undefined) {
+  if (v === null || v === undefined) return "No previous period";
+  if (v === 0) return "0.0% vs previous period";
+  return `${v > 0 ? "+" : ""}${v.toFixed(1)}% vs previous period`;
+}
+
+function deltaTone(v: number | null | undefined, reverse = false) {
+  if (v === null || v === undefined || v === 0) return "text-neutral-500";
+  const positive = reverse ? v < 0 : v > 0;
+  return positive ? "text-emerald-700" : "text-red-700";
+}
+
+function alertTone(kind: string) {
+  switch (kind) {
+    case "danger":
+      return "border-red-200/80 bg-red-50/85 text-red-950";
+    case "warning":
+      return "border-amber-200/80 bg-amber-50/90 text-amber-950";
+    default:
+      return "border-sky-200/80 bg-sky-50/85 text-sky-950";
+  }
+}
+
+type MetricCardProps = {
+  label: string;
+  value: string;
+  subtitle: string;
+  comparison?: number | null;
+  reverseComparison?: boolean;
+  valueClassName?: string;
+};
+
+function MetricCard({ label, value, subtitle, comparison, reverseComparison = false, valueClassName }: MetricCardProps) {
+  return (
+    <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+      <div className="text-xs font-medium text-neutral-600">{label}</div>
+      <div className={`mt-2 text-2xl font-semibold tabular-nums ${valueClassName ?? ""}`}>{value}</div>
+      <div className="mt-1 space-y-1">
+        <div className="text-xs text-neutral-500">{subtitle}</div>
+        {comparison !== undefined ? (
+          <div className={`text-xs font-medium ${deltaTone(comparison, reverseComparison)}`}>{formatDeltaPct(comparison)}</div>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 type ViewMode = "daily" | "month" | "year" | "all";
@@ -72,23 +122,6 @@ function getPeriodStartForCost(iso: string, groupBy: "day" | "month") {
   }
 
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)).toISOString();
-}
-
-function isWithinRange(iso: string, from?: string, to?: string) {
-  const value = new Date(iso).getTime();
-  if (Number.isNaN(value)) return false;
-
-  if (from) {
-    const fromValue = new Date(from).getTime();
-    if (!Number.isNaN(fromValue) && value < fromValue) return false;
-  }
-
-  if (to) {
-    const toValue = new Date(to).getTime();
-    if (!Number.isNaN(toValue) && value > toValue) return false;
-  }
-
-  return true;
 }
 
 export default async function DashboardPage({ searchParams }: Props) {
@@ -167,22 +200,17 @@ export default async function DashboardPage({ searchParams }: Props) {
               groupBy: "day" as const,
             };
 
-  const [summary, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer, debtSales] = await Promise.all([
-    getDashboardSummary({ from: range.from, to: range.to }),
+  const [overview, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer] = await Promise.all([
+    getDashboardOverview({ from: range.from, to: range.to }),
     getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to, tzOffsetMinutes }),
     getTopProducts({ limit: 10, from: range.from, to: range.to, sortBy: topProductsSortBy }),
     getCosts({ startDate: range.from, endDate: range.to }),
     getSalesByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
     getSpendingByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
-    getSalesByDebt(true),
   ]);
 
   const points = byPeriod.points ?? [];
   const maxRevenue = points.reduce((m, p) => Math.max(m, p.revenue), 0);
-  const costsTotal = costs.reduce((sum, c) => sum + c.amount, 0);
-  const debtsTotal = (debtSales as SaleDto[])
-    .filter((sale) => isWithinRange(sale.createdAt, range.from, range.to))
-    .reduce((sum, sale) => sum + sale.total, 0);
 
   const costsGroupBy: "day" | "month" = range.groupBy === "month" ? "month" : "day";
   const costPointsMap = new Map<string, number>();
@@ -278,43 +306,100 @@ export default async function DashboardPage({ searchParams }: Props) {
         </form>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur lg:col-span-2">
-          <div className="text-xs font-medium text-neutral-600">Revenue total</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.revenueTotal)}</div>
-          <div className="mt-1 text-xs text-neutral-500">In selected period</div>
-        </div>
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Revenue total"
+          value={formatMoney(overview.revenueTotal)}
+          subtitle="In selected period"
+          comparison={overview.comparison.revenueDeltaPct}
+        />
+        <MetricCard
+          label="Costs total"
+          value={formatMoney(overview.costsTotal)}
+          subtitle="In selected period"
+          comparison={overview.comparison.costsDeltaPct}
+          reverseComparison
+          valueClassName="text-amber-700"
+        />
+        <MetricCard
+          label="Gains"
+          value={formatMoney(overview.gains)}
+          subtitle="Revenue - costs"
+          comparison={overview.comparison.gainsDeltaPct}
+          valueClassName={overview.gains < 0 ? "text-red-700" : "text-emerald-700"}
+        />
+        <MetricCard
+          label="Margin"
+          value={formatPercent(overview.marginPct)}
+          subtitle="Gains / revenue"
+        />
+        <MetricCard
+          label="Sales count"
+          value={String(overview.salesCount)}
+          subtitle="Transactions"
+          comparison={overview.comparison.salesCountDeltaPct}
+        />
+        <MetricCard
+          label="Units sold"
+          value={String(overview.unitsSold)}
+          subtitle="Items in non-debt sales"
+          comparison={overview.comparison.unitsSoldDeltaPct}
+        />
+        <MetricCard
+          label="Average ticket"
+          value={formatMoney(overview.avgTicket)}
+          subtitle="Revenue / sales"
+        />
+        <MetricCard
+          label="Debt ratio"
+          value={formatPercent(overview.debtRatioPct)}
+          subtitle={`${formatMoney(overview.debtsTotal)} in debt sales`}
+          valueClassName={overview.debtRatioPct >= 20 ? "text-red-700" : "text-amber-800"}
+        />
+      </section>
 
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur lg:col-span-2">
-          <div className="text-xs font-medium text-neutral-600">Costs total</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums text-amber-700">{formatMoney(costsTotal)}</div>
-          <div className="mt-1 text-xs text-neutral-500">In selected period</div>
-        </div>
+      {overview.alerts.length > 0 ? (
+        <section className="mt-6 grid gap-3 lg:grid-cols-2">
+          {overview.alerts.map((alert) => (
+            <div
+              key={`${alert.kind}-${alert.title}`}
+              className={`rounded-2xl border px-4 py-4 shadow-sm backdrop-blur ${alertTone(alert.kind)}`}
+            >
+              <div className="text-xs font-semibold uppercase tracking-[0.16em] opacity-80">{alert.kind}</div>
+              <div className="mt-2 text-sm font-semibold">{alert.title}</div>
+              <p className="mt-1 text-sm opacity-85">{alert.detail}</p>
+            </div>
+          ))}
+        </section>
+      ) : null}
 
+      <section className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
-          <div className="text-xs font-medium text-neutral-600">Gains</div>
-          <div className={`mt-2 text-2xl font-semibold tabular-nums ${summary.gains < 0 ? "text-red-700" : "text-emerald-700"}`}>
-            {formatMoney(summary.gains)}
+          <div className="text-xs font-medium text-neutral-600">Top customer</div>
+          <div className="mt-2 text-lg font-semibold text-neutral-950">
+            {overview.topCustomer?.customerName?.trim() ? overview.topCustomer.customerName : "No customer sales"}
           </div>
-          <div className="mt-1 text-xs text-neutral-500">Revenue - costs</div>
+          <div className="mt-1 text-sm tabular-nums text-neutral-700">
+            {overview.topCustomer ? formatMoney(overview.topCustomer.totalSpent) : "No data in selected period"}
+          </div>
         </div>
 
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
-          <div className="text-xs font-medium text-neutral-600">Sales count</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums">{summary.salesCount}</div>
-          <div className="mt-1 text-xs text-neutral-500">Transactions</div>
+          <div className="text-xs font-medium text-neutral-600">Top product by quantity</div>
+          <div className="mt-2 text-lg font-semibold text-neutral-950">
+            {overview.topProductByQuantity?.productName?.trim() ? overview.topProductByQuantity.productName : "No product data"}
+          </div>
+          <div className="mt-1 text-sm tabular-nums text-neutral-700">
+            {overview.topProductByQuantity ? `${overview.topProductByQuantity.quantity} units sold` : "No data in selected period"}
+          </div>
         </div>
 
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
-          <div className="text-xs font-medium text-neutral-600">Average ticket</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.avgTicket)}</div>
-          <div className="mt-1 text-xs text-neutral-500">Revenue / sales</div>
-        </div>
-
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
-          <div className="text-xs font-medium text-neutral-600">Total debts</div>
-          <div className="mt-2 text-2xl font-semibold tabular-nums text-amber-800">{formatMoney(debtsTotal)}</div>
-          <div className="mt-1 text-xs text-neutral-500">Debts in selected period</div>
+          <div className="text-xs font-medium text-neutral-600">Stock risk</div>
+          <div className="mt-2 text-lg font-semibold text-neutral-950">
+            {overview.lowStockCount} low stock / {overview.outOfStockCount} out of stock
+          </div>
+          <div className="mt-1 text-sm text-neutral-700">Active products with tracked stock</div>
         </div>
       </section>
 
@@ -420,18 +505,18 @@ export default async function DashboardPage({ searchParams }: Props) {
               <input type="hidden" name="view" value={mode} />
               {mode === "daily" && (
                 <>
-                  <input type="hidden" name="year" value={year} />
-                  <input type="hidden" name="month" value={month} />
-                  <input type="hidden" name="day" value={day} />
+                  <input type="hidden" name="y" value={year} />
+                  <input type="hidden" name="m" value={month} />
+                  <input type="hidden" name="d" value={`${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`} />
                 </>
               )}
               {mode === "month" && (
                 <>
-                  <input type="hidden" name="year" value={year} />
-                  <input type="hidden" name="month" value={month} />
+                  <input type="hidden" name="y" value={year} />
+                  <input type="hidden" name="m" value={String(month).padStart(2, "0")} />
                 </>
               )}
-              {mode === "year" && <input type="hidden" name="year" value={year} />}
+              {mode === "year" && <input type="hidden" name="y" value={year} />}
               <input type="hidden" name="tzOffset" value={tzOffsetMinutes} />
               <select
                 name="topProductsSortBy"

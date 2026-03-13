@@ -8,6 +8,20 @@ export type DashboardSummaryDto = {
   avgTicket: number;
 };
 
+export type DashboardComparisonDto = {
+  revenueDeltaPct: number | null;
+  costsDeltaPct: number | null;
+  gainsDeltaPct: number | null;
+  salesCountDeltaPct: number | null;
+  unitsSoldDeltaPct: number | null;
+};
+
+export type DashboardAlertDto = {
+  kind: string;
+  title: string;
+  detail: string;
+};
+
 export type SalesByPeriodPointDto = {
   periodStart: IsoDateTime;
   revenue: number;
@@ -38,6 +52,24 @@ export type CustomerSpendingDto = {
   totalSpent: number;
 };
 
+export type DashboardOverviewDto = {
+  revenueTotal: number;
+  costsTotal: number;
+  gains: number;
+  marginPct: number;
+  salesCount: number;
+  unitsSold: number;
+  avgTicket: number;
+  debtsTotal: number;
+  debtRatioPct: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  topCustomer: CustomerSpendingDto | null;
+  topProductByQuantity: TopProductDto | null;
+  comparison: DashboardComparisonDto;
+  alerts: DashboardAlertDto[];
+};
+
 function toQuery(params: Record<string, string | number | boolean | null | undefined>) {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -52,6 +84,11 @@ function toQuery(params: Record<string, string | number | boolean | null | undef
 export async function getDashboardSummary(opts?: { from?: IsoDateTime; to?: IsoDateTime }): Promise<DashboardSummaryDto> {
   const qs = toQuery({ from: opts?.from, to: opts?.to });
   return apiJsonServer<DashboardSummaryDto>(`/dashboard/summary${qs}`, { cache: "no-store" });
+}
+
+export async function getDashboardOverview(opts?: { from?: IsoDateTime; to?: IsoDateTime }): Promise<DashboardOverviewDto> {
+  const qs = toQuery({ from: opts?.from, to: opts?.to });
+  return apiJsonServer<DashboardOverviewDto>(`/dashboard/overview${qs}`, { cache: "no-store" });
 }
 
 export async function getSalesByPeriod(opts?: {

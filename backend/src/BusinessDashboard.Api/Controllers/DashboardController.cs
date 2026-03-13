@@ -15,6 +15,16 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("overview")]
+    public async Task<IActionResult> GetOverview([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
+    {
+        if (from is not null && to is not null && from > to)
+            return BadRequest("'from' must be <= 'to'.");
+
+        var result = await dashboard.GetOverviewAsync(from, to, ct);
+        return Ok(result);
+    }
+
     [HttpGet("sales-by-period")]
     public async Task<IActionResult> GetSalesByPeriod(
         [FromQuery] string groupBy = "day",

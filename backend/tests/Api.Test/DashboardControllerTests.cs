@@ -39,9 +39,44 @@ public class DashboardControllerTests
     }
 
     [TestMethod]
+    public async Task GetOverview_ShouldReturnOk()
+    {
+        _service.OverviewResult = new DashboardOverviewDto
+        {
+            RevenueTotal = 100m,
+            CostsTotal = 40m,
+            Gains = 60m,
+            MarginPct = 60m,
+            SalesCount = 2,
+            UnitsSold = 5
+        };
+
+        var result = await _controller.GetOverview(from: null, to: null, ct: CancellationToken.None);
+
+        var ok = result as OkObjectResult;
+        Assert.IsNotNull(ok);
+
+        var dto = ok.Value as DashboardOverviewDto;
+        Assert.IsNotNull(dto);
+        Assert.AreEqual(100m, dto.RevenueTotal);
+        Assert.AreEqual(5, dto.UnitsSold);
+    }
+
+    [TestMethod]
     public async Task GetSummary_WithFromGreaterThanTo_ShouldReturnBadRequest()
     {
         var result = await _controller.GetSummary(
+            from: new DateTime(2026, 02, 04),
+            to: new DateTime(2026, 02, 01),
+            ct: CancellationToken.None);
+
+        Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+    }
+
+    [TestMethod]
+    public async Task GetOverview_WithFromGreaterThanTo_ShouldReturnBadRequest()
+    {
+        var result = await _controller.GetOverview(
             from: new DateTime(2026, 02, 04),
             to: new DateTime(2026, 02, 01),
             ct: CancellationToken.None);
@@ -133,10 +168,15 @@ public class DashboardControllerTests
         var to = new DateTime(2026, 02, 04);
 
         _service.SummaryResult = new DashboardSummaryDto();
+        _service.OverviewResult = new DashboardOverviewDto();
         _service.SalesByPeriodResult = new SalesByPeriodDto();
         _service.TopProductsResult = new List<TopProductDto>();
 
         _ = await _controller.GetSummary(from, to, CancellationToken.None);
+        Assert.AreEqual(from, _service.LastFrom);
+        Assert.AreEqual(to, _service.LastTo);
+
+        _ = await _controller.GetOverview(from, to, CancellationToken.None);
         Assert.AreEqual(from, _service.LastFrom);
         Assert.AreEqual(to, _service.LastTo);
 
@@ -150,6 +190,7 @@ public class DashboardControllerTests
     private sealed class FakeDashboardService : IDashboardService
     {
         public DashboardSummaryDto SummaryResult { get; set; } = new();
+        public DashboardOverviewDto OverviewResult { get; set; } = new();
         public SalesByPeriodDto SalesByPeriodResult { get; set; } = new();
         public IReadOnlyList<TopProductDto> TopProductsResult { get; set; } = Array.Empty<TopProductDto>();
         public bool ThrowInvalidGroupBy { get; set; }
@@ -164,6 +205,13 @@ public class DashboardControllerTests
             LastFrom = from;
             LastTo = to;
             return Task.FromResult(SummaryResult);
+        }
+
+        public Task<DashboardOverviewDto> GetOverviewAsync(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
+        {
+            LastFrom = from;
+            LastTo = to;
+            return Task.FromResult(OverviewResult);
         }
 
         public Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, int tzOffsetMinutes = 0, CancellationToken ct = default)
@@ -202,4 +250,3 @@ public class DashboardControllerTests
         }
     }
 }
-
