@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { CustomerDto } from "@/lib/customers.api";
+import ClientPagination from "@/app/ui/ClientPagination";
+import useClientPagination from "@/app/ui/useClientPagination";
 import CustomerRowActions from "./CustomerRowActions";
 
 function formatMoney(v: number) {
@@ -33,6 +35,7 @@ export default function CustomerTable({ customers }: { customers: CustomerDto[] 
       setSortField(field);
       setSortDir("asc");
     }
+    pagination.resetPage();
   }
 
   const filtered = useMemo(() => {
@@ -73,6 +76,8 @@ export default function CustomerTable({ customers }: { customers: CustomerDto[] 
     return list;
   }, [filtered, sortField, sortDir]);
 
+  const pagination = useClientPagination(sorted, 20);
+
   const arrow = (field: SortField) => {
     if (sortField !== field) return <span className="ml-1 text-neutral-300">↕</span>;
     return <span className="ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>;
@@ -86,7 +91,10 @@ export default function CustomerTable({ customers }: { customers: CustomerDto[] 
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            pagination.resetPage();
+          }}
           placeholder="Search by name or email…"
           className="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-2.5 text-sm text-neutral-900 shadow-sm outline-none backdrop-blur placeholder:text-neutral-400 focus:border-black/20 focus:ring-2 focus:ring-black/5"
         />
@@ -123,7 +131,7 @@ export default function CustomerTable({ customers }: { customers: CustomerDto[] 
             </tr>
           </thead>
           <tbody>
-            {sorted.map((c) => (
+            {pagination.items.map((c) => (
               <tr key={c.id} className="border-t border-black/10">
                 <td className="px-4 py-3 font-medium text-neutral-900">{c.name}</td>
                 <td className="px-4 py-3 text-neutral-700">{c.email ?? "-"}</td>
@@ -167,6 +175,18 @@ export default function CustomerTable({ customers }: { customers: CustomerDto[] 
           </tbody>
         </table>
       </div>
+
+      {sorted.length > 0 ? (
+        <ClientPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          startItem={pagination.startItem}
+          endItem={pagination.endItem}
+          itemLabel="customers"
+          onPageChange={pagination.setPage}
+        />
+      ) : null}
     </>
   );
 }

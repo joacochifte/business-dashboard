@@ -45,7 +45,7 @@ export default async function InventoryPage({ searchParams }: Props) {
   const toDate = pickFirst(sp.to);
 
   const page = clampInt(pickFirst(sp.page), 1, 1, 10_000);
-  const pageSize = clampInt(pickFirst(sp.pageSize), 50, 1, 200);
+  const pageSize = clampInt(pickFirst(sp.pageSize), 20, 1, 200);
 
   const products = await getProducts();
   const productMap = new Map<string, ProductDto>(products.map((p) => [p.id, p]));
@@ -67,7 +67,7 @@ export default async function InventoryPage({ searchParams }: Props) {
   if (productId) queryBase.set("productId", productId);
   if (fromDate) queryBase.set("from", fromDate);
   if (toDate) queryBase.set("to", toDate);
-  if (pageSize !== 50) queryBase.set("pageSize", String(pageSize));
+  if (pageSize !== 20) queryBase.set("pageSize", String(pageSize));
 
   function pageHref(p: number) {
     const qs = new URLSearchParams(queryBase);
@@ -139,6 +139,7 @@ export default async function InventoryPage({ searchParams }: Props) {
                 defaultValue={String(pageSize)}
                 className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
               >
+                <option value="20">20</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>

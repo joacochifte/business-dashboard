@@ -2,7 +2,6 @@ import { getDashboardSummary, getSalesByPeriod, getTopProducts, getSalesByCustom
 import { getCosts, type CostSummaryDto } from "@/lib/costs.api";
 import { getSalesByDebt, type SaleDto } from "@/lib/sales.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
-import CostsByPeriodChart from "./ui/CostsByPeriodChart";
 import PageShell from "../ui/PageShell";
 import ClientDateTime from "../ui/ClientDateTime";
 import TzOffsetField from "./ui/TzOffsetField";
@@ -194,6 +193,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const costsByPeriodPoints = Array.from(costPointsMap.entries())
     .map(([periodStart, amount]) => ({ periodStart, amount }))
     .sort((a, b) => a.periodStart.localeCompare(b.periodStart));
+  const maxCostAmount = costsByPeriodPoints.reduce((m, p) => Math.max(m, p.amount), 0);
 
   return (
     <PageShell>
@@ -279,13 +279,13 @@ export default async function DashboardPage({ searchParams }: Props) {
       </section>
 
       <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur lg:col-span-2">
           <div className="text-xs font-medium text-neutral-600">Revenue total</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.revenueTotal)}</div>
           <div className="mt-1 text-xs text-neutral-500">In selected period</div>
         </div>
 
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur lg:col-span-2">
           <div className="text-xs font-medium text-neutral-600">Costs total</div>
           <div className="mt-2 text-2xl font-semibold tabular-nums text-amber-700">{formatMoney(costsTotal)}</div>
           <div className="mt-1 text-xs text-neutral-500">In selected period</div>
@@ -319,7 +319,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       </section>
 
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur lg:row-span-2">
+        <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <h2 className="text-sm font-semibold text-neutral-900">Sales by period</h2>
@@ -327,7 +327,7 @@ export default async function DashboardPage({ searchParams }: Props) {
             </div>
           </div>
 
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
             {points.length === 0 ? (
               <div className="rounded-2xl border border-black/10 bg-white/50 px-3 py-8 text-center text-sm text-neutral-600">
                 No data yet.
@@ -369,11 +369,45 @@ export default async function DashboardPage({ searchParams }: Props) {
             <p className="text-xs text-neutral-600">Grouped by: {costsGroupBy}</p>
           </div>
 
-          <div className="mt-4">
-            <CostsByPeriodChart points={costsByPeriodPoints} groupBy={costsGroupBy} />
+          <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
+            {costsByPeriodPoints.length === 0 ? (
+              <div className="rounded-2xl border border-black/10 bg-white/50 px-3 py-8 text-center text-sm text-neutral-600">
+                No data yet.
+              </div>
+            ) : (
+              costsByPeriodPoints.map((p) => {
+                const width = maxCostAmount <= 0 ? 0 : Math.round((p.amount / maxCostAmount) * 100);
+                const barWidth = width > 0 ? `max(${width}%, 10px)` : "0%";
+                return (
+                  <div key={p.periodStart} className="grid grid-cols-12 items-center gap-3">
+                    <div className="col-span-4 text-xs text-neutral-700">
+                      {costsGroupBy === "month" ? (
+                        <span className="tabular-nums">{p.periodStart.slice(0, 7)}</span>
+                      ) : (
+                        <ClientDateTime iso={p.periodStart} variant="date" />
+                      )}
+                    </div>
+                    <div className="col-span-6">
+                      <div className="h-2 w-full rounded-full bg-black/5">
+                        <div
+                          className="h-2 rounded-full bg-neutral-900/80"
+                          style={{ width: barWidth }}
+                          aria-label={`Costs ${p.amount}`}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-span-2 text-right text-xs tabular-nums text-neutral-700">
+                      {formatMoney(p.amount)}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
+      </section>
 
+      <section className="mt-6">
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">

@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import ClientPagination from "@/app/ui/ClientPagination";
+import useClientPagination from "@/app/ui/useClientPagination";
 import type { ProductDto } from "@/lib/products.api";
 import ProductRowActions from "./ProductRowActions";
 
@@ -24,13 +26,18 @@ export default function ProductTable({ products }: { products: ProductDto[] }) {
     });
   }, [products, search]);
 
+  const pagination = useClientPagination(filtered, 20);
+
   return (
     <>
       <div className="mt-6">
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            pagination.resetPage();
+          }}
           placeholder="Search by name, description, or stock..."
           className="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-2.5 text-sm text-neutral-900 shadow-sm outline-none backdrop-blur placeholder:text-neutral-400 focus:border-black/20 focus:ring-2 focus:ring-black/5"
         />
@@ -49,7 +56,7 @@ export default function ProductTable({ products }: { products: ProductDto[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((p) => (
+            {pagination.items.map((p) => (
               <tr key={p.id} className="border-t border-black/10">
                 <td className="px-4 py-3 font-medium text-neutral-900">{p.name}</td>
                 <td className="px-4 py-3 text-neutral-700">{p.description?.trim() ? p.description : "-"}</td>
@@ -96,6 +103,18 @@ export default function ProductTable({ products }: { products: ProductDto[] }) {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > 0 ? (
+        <ClientPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          startItem={pagination.startItem}
+          endItem={pagination.endItem}
+          itemLabel="products"
+          onPageChange={pagination.setPage}
+        />
+      ) : null}
     </>
   );
 }

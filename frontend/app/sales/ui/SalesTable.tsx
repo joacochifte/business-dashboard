@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 
 import type { SaleDto } from "@/lib/sales.api";
+import ClientPagination from "@/app/ui/ClientPagination";
 import ClientDateTime from "@/app/ui/ClientDateTime";
 import DateFilterInput from "@/app/ui/DateFilterInput";
+import useClientPagination from "@/app/ui/useClientPagination";
 import SaleRowActions from "./SaleRowActions";
 
 function formatMoney(v: number) {
@@ -71,6 +73,8 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
     return result;
   }, [fromDate, sales, search, sort, toDate]);
 
+  const pagination = useClientPagination(filtered, 20);
+
   return (
     <>
       <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
@@ -80,21 +84,43 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                pagination.resetPage();
+              }}
               placeholder="Customer, payment, or date..."
               className="rounded-xl border border-black/10 bg-white/70 px-4 py-2.5 text-sm text-neutral-900 shadow-sm outline-none placeholder:text-neutral-400 focus:border-black/20 focus:ring-2 focus:ring-black/5"
             />
           </label>
 
-          <DateFilterInput label="From" value={fromDate} onChange={setFromDate} className="md:col-span-2" />
+          <DateFilterInput
+            label="From"
+            value={fromDate}
+            onChange={(value) => {
+              setFromDate(value);
+              pagination.resetPage();
+            }}
+            className="md:col-span-2"
+          />
 
-          <DateFilterInput label="To" value={toDate} onChange={setToDate} className="md:col-span-2" />
+          <DateFilterInput
+            label="To"
+            value={toDate}
+            onChange={(value) => {
+              setToDate(value);
+              pagination.resetPage();
+            }}
+            className="md:col-span-2"
+          />
 
           <label className="grid gap-1 md:col-span-3">
             <span className="text-xs font-medium text-neutral-700">Sort</span>
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value as TotalSort)}
+              onChange={(e) => {
+                setSort(e.target.value as TotalSort);
+                pagination.resetPage();
+              }}
               className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             >
               <option value="newest">Newest first</option>
@@ -120,14 +146,14 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s) => (
+            {pagination.items.map((s) => (
               <tr key={s.id} className="border-t border-black/10">
                 <td className="px-4 py-3 whitespace-nowrap text-neutral-900">
                   <ClientDateTime iso={s.createdAt} />
                 </td>
                 <td className="px-4 py-3 text-neutral-900">{s.customerName?.trim() ? s.customerName : "-"}</td>
                 <td className="px-4 py-3 text-neutral-900">{s.paymentMethod?.trim() ? s.paymentMethod : "-"}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{s.items.length}</td>
+                <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{s.items?.length ?? 0}</td>
                 <td className="px-4 py-3 text-right tabular-nums text-neutral-900">{formatMoney(s.total)}</td>
                 <td className="px-4 py-3 text-neutral-900">{previewNotes(s.notes)}</td>
                 <td className="px-4 py-3">
@@ -152,6 +178,18 @@ export default function SalesTable({ sales }: { sales: SaleDto[] }) {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > 0 ? (
+        <ClientPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          startItem={pagination.startItem}
+          endItem={pagination.endItem}
+          itemLabel="sales"
+          onPageChange={pagination.setPage}
+        />
+      ) : null}
     </>
   );
 }

@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 
 import type { CostSummaryDto } from "@/lib/costs.api";
+import ClientPagination from "@/app/ui/ClientPagination";
 import ClientDateTime from "@/app/ui/ClientDateTime";
 import DateFilterInput from "@/app/ui/DateFilterInput";
+import useClientPagination from "@/app/ui/useClientPagination";
 import CostRowActions from "./CostRowActions";
 
 function formatMoney(v: number) {
@@ -62,6 +64,8 @@ export default function CostsTable({ costs }: { costs: CostSummaryDto[] }) {
     return result;
   }, [costs, fromDate, search, sort, toDate]);
 
+  const pagination = useClientPagination(filtered, 20);
+
   return (
     <>
       <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
@@ -71,7 +75,10 @@ export default function CostsTable({ costs }: { costs: CostSummaryDto[] }) {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                pagination.resetPage();
+              }}
               placeholder="Search by name or date..."
               className="rounded-xl border border-black/10 bg-white/70 px-4 py-2.5 text-sm text-neutral-900 shadow-sm outline-none placeholder:text-neutral-400 focus:border-black/20 focus:ring-2 focus:ring-black/5"
             />
@@ -81,7 +88,10 @@ export default function CostsTable({ costs }: { costs: CostSummaryDto[] }) {
             <span className="text-xs font-medium text-neutral-700">Sort</span>
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value as SortMode)}
+              onChange={(e) => {
+                setSort(e.target.value as SortMode);
+                pagination.resetPage();
+              }}
               className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
             >
               <option value="newest">Newest first</option>
@@ -91,9 +101,25 @@ export default function CostsTable({ costs }: { costs: CostSummaryDto[] }) {
             </select>
           </label>
 
-          <DateFilterInput label="From" value={fromDate} onChange={setFromDate} className="md:col-span-6" />
+          <DateFilterInput
+            label="From"
+            value={fromDate}
+            onChange={(value) => {
+              setFromDate(value);
+              pagination.resetPage();
+            }}
+            className="md:col-span-6"
+          />
 
-          <DateFilterInput label="To" value={toDate} onChange={setToDate} className="md:col-span-6" />
+          <DateFilterInput
+            label="To"
+            value={toDate}
+            onChange={(value) => {
+              setToDate(value);
+              pagination.resetPage();
+            }}
+            className="md:col-span-6"
+          />
         </div>
       </section>
 
@@ -108,7 +134,7 @@ export default function CostsTable({ costs }: { costs: CostSummaryDto[] }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((c) => (
+            {pagination.items.map((c) => (
               <tr key={c.id} className="border-t border-black/10">
                 <td className="px-4 py-3 whitespace-nowrap text-neutral-900">
                   <ClientDateTime iso={c.dateIncurred} />
@@ -137,6 +163,18 @@ export default function CostsTable({ costs }: { costs: CostSummaryDto[] }) {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > 0 ? (
+        <ClientPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          startItem={pagination.startItem}
+          endItem={pagination.endItem}
+          itemLabel="costs"
+          onPageChange={pagination.setPage}
+        />
+      ) : null}
     </>
   );
 }

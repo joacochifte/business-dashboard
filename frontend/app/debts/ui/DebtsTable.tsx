@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import type { SaleDto } from "@/lib/sales.api";
+import ClientPagination from "@/app/ui/ClientPagination";
 import DateFilterInput from "@/app/ui/DateFilterInput";
+import useClientPagination from "@/app/ui/useClientPagination";
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
@@ -63,6 +65,7 @@ export default function DebtsTable({ debts }: { debts: SaleDto[] }) {
     return result;
   }, [debts, fromDate, search, sort, toDate]);
 
+  const pagination = useClientPagination(filtered, 20);
   const totalOwed = useMemo(() => filtered.reduce((sum, debt) => sum + debt.total, 0), [filtered]);
 
   return (
@@ -73,10 +76,13 @@ export default function DebtsTable({ debts }: { debts: SaleDto[] }) {
             <label className="grid gap-1 md:col-span-8">
               <span className="text-xs font-medium text-neutral-700">Search</span>
               <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Customer, payment, or date..."
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                pagination.resetPage();
+              }}
+              placeholder="Customer, payment, or date..."
                 className="rounded-xl border border-black/10 bg-white/70 px-4 py-2.5 text-sm text-neutral-900 shadow-sm outline-none placeholder:text-neutral-400 focus:border-black/20 focus:ring-2 focus:ring-black/5"
               />
             </label>
@@ -84,9 +90,12 @@ export default function DebtsTable({ debts }: { debts: SaleDto[] }) {
             <label className="grid gap-1 md:col-span-4">
               <span className="text-xs font-medium text-neutral-700">Sort</span>
               <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as DebtSort)}
-                className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value as DebtSort);
+                pagination.resetPage();
+              }}
+              className="rounded-xl border border-black/10 bg-white/70 px-3 py-2 text-sm outline-none focus:border-black/20 focus:ring-2 focus:ring-black/5"
               >
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
@@ -95,9 +104,25 @@ export default function DebtsTable({ debts }: { debts: SaleDto[] }) {
               </select>
             </label>
 
-            <DateFilterInput label="From" value={fromDate} onChange={setFromDate} className="md:col-span-6" />
+            <DateFilterInput
+              label="From"
+              value={fromDate}
+              onChange={(value) => {
+                setFromDate(value);
+                pagination.resetPage();
+              }}
+              className="md:col-span-6"
+            />
 
-            <DateFilterInput label="To" value={toDate} onChange={setToDate} className="md:col-span-6" />
+            <DateFilterInput
+              label="To"
+              value={toDate}
+              onChange={(value) => {
+                setToDate(value);
+                pagination.resetPage();
+              }}
+              className="md:col-span-6"
+            />
           </div>
         </div>
 
@@ -126,7 +151,7 @@ export default function DebtsTable({ debts }: { debts: SaleDto[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-black/10">
-            {filtered.map((sale) => (
+            {pagination.items.map((sale) => (
               <tr key={sale.id} className="transition hover:bg-white/40">
                 <td className="px-4 py-3 text-neutral-700">{sale.customerName?.trim() ? sale.customerName : "—"}</td>
                 <td className="px-4 py-3 text-neutral-700">{sale.items?.length ?? 0} item(s)</td>
@@ -167,6 +192,18 @@ export default function DebtsTable({ debts }: { debts: SaleDto[] }) {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > 0 ? (
+        <ClientPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          startItem={pagination.startItem}
+          endItem={pagination.endItem}
+          itemLabel="debts"
+          onPageChange={pagination.setPage}
+        />
+      ) : null}
     </>
   );
 }
