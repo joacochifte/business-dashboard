@@ -63,6 +63,36 @@ public class DashboardControllerTests
     }
 
     [TestMethod]
+    public async Task GetPerformanceSeries_ShouldReturnOk()
+    {
+        _service.PerformanceSeriesResult = new DashboardPerformanceSeriesDto
+        {
+            GroupBy = "day",
+            AxisMode = "day_of_period",
+            CurrentSeries = new DashboardPerformanceSeriesLineDto
+            {
+                Id = "current",
+                Label = "Current period",
+                Kind = "current",
+                Points = new List<DashboardPerformancePointDto>
+                {
+                    new() { AxisIndex = 1, AxisLabel = "01", Revenue = 100m, Costs = 20m, Gains = 80m, MarginPct = 80m, AvgTicket = 50m, SalesCount = 2 }
+                }
+            }
+        };
+
+        var result = await _controller.GetPerformanceSeries(groupBy: "day", from: null, to: null, tzOffsetMinutes: 0, ct: CancellationToken.None);
+
+        var ok = result as OkObjectResult;
+        Assert.IsNotNull(ok);
+
+        var dto = ok.Value as DashboardPerformanceSeriesDto;
+        Assert.IsNotNull(dto);
+        Assert.AreEqual("day", dto.GroupBy);
+        Assert.AreEqual(1, dto.CurrentSeries.Points.Count);
+    }
+
+    [TestMethod]
     public async Task GetSummary_WithFromGreaterThanTo_ShouldReturnBadRequest()
     {
         var result = await _controller.GetSummary(
@@ -79,6 +109,19 @@ public class DashboardControllerTests
         var result = await _controller.GetOverview(
             from: new DateTime(2026, 02, 04),
             to: new DateTime(2026, 02, 01),
+            ct: CancellationToken.None);
+
+        Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+    }
+
+    [TestMethod]
+    public async Task GetPerformanceSeries_WithFromGreaterThanTo_ShouldReturnBadRequest()
+    {
+        var result = await _controller.GetPerformanceSeries(
+            groupBy: "day",
+            from: new DateTime(2026, 02, 04),
+            to: new DateTime(2026, 02, 01),
+            tzOffsetMinutes: 0,
             ct: CancellationToken.None);
 
         Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
@@ -169,6 +212,7 @@ public class DashboardControllerTests
 
         _service.SummaryResult = new DashboardSummaryDto();
         _service.OverviewResult = new DashboardOverviewDto();
+        _service.PerformanceSeriesResult = new DashboardPerformanceSeriesDto();
         _service.SalesByPeriodResult = new SalesByPeriodDto();
         _service.TopProductsResult = new List<TopProductDto>();
 
@@ -179,6 +223,11 @@ public class DashboardControllerTests
         _ = await _controller.GetOverview(from, to, CancellationToken.None);
         Assert.AreEqual(from, _service.LastFrom);
         Assert.AreEqual(to, _service.LastTo);
+
+        _ = await _controller.GetPerformanceSeries("day", from, to, 0, "1,2", "2025-11", false, 3, CancellationToken.None);
+        Assert.AreEqual("day", _service.LastGroupBy);
+        CollectionAssert.AreEqual(new[] { 1, 2 }, _service.LastCompareYearOffsets!.ToArray());
+        CollectionAssert.AreEqual(new[] { "2025-11" }, _service.LastCompareMonths!.ToArray());
 
         _ = await _controller.GetSalesByPeriod("week", from, to, 0, CancellationToken.None);
         Assert.AreEqual("week", _service.LastGroupBy);
@@ -191,6 +240,7 @@ public class DashboardControllerTests
     {
         public DashboardSummaryDto SummaryResult { get; set; } = new();
         public DashboardOverviewDto OverviewResult { get; set; } = new();
+        public DashboardPerformanceSeriesDto PerformanceSeriesResult { get; set; } = new();
         public SalesByPeriodDto SalesByPeriodResult { get; set; } = new();
         public IReadOnlyList<TopProductDto> TopProductsResult { get; set; } = Array.Empty<TopProductDto>();
         public bool ThrowInvalidGroupBy { get; set; }
@@ -199,6 +249,8 @@ public class DashboardControllerTests
         public DateTime? LastTo { get; private set; }
         public string? LastGroupBy { get; private set; }
         public int? LastLimit { get; private set; }
+        public IReadOnlyList<int>? LastCompareYearOffsets { get; private set; }
+        public IReadOnlyList<string>? LastCompareMonths { get; private set; }
 
         public Task<DashboardSummaryDto> GetSummaryAsync(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
         {
@@ -212,6 +264,25 @@ public class DashboardControllerTests
             LastFrom = from;
             LastTo = to;
             return Task.FromResult(OverviewResult);
+        }
+
+        public Task<DashboardPerformanceSeriesDto> GetPerformanceSeriesAsync(
+            string groupBy,
+            DateTime? from = null,
+            DateTime? to = null,
+            int tzOffsetMinutes = 0,
+            IReadOnlyList<int>? compareYearOffsets = null,
+            IReadOnlyList<string>? compareMonths = null,
+            bool includeForecast = false,
+            int forecastPeriods = 3,
+            CancellationToken ct = default)
+        {
+            LastGroupBy = groupBy;
+            LastFrom = from;
+            LastTo = to;
+            LastCompareYearOffsets = compareYearOffsets;
+            LastCompareMonths = compareMonths;
+            return Task.FromResult(PerformanceSeriesResult);
         }
 
         public Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, int tzOffsetMinutes = 0, CancellationToken ct = default)

@@ -52,6 +52,33 @@ export type CustomerSpendingDto = {
   totalSpent: number;
 };
 
+export type DashboardPerformancePointDto = {
+  axisIndex: number;
+  axisLabel: string;
+  periodStart: IsoDateTime | null;
+  revenue: number;
+  costs: number;
+  gains: number;
+  marginPct: number;
+  avgTicket: number;
+  salesCount: number;
+};
+
+export type DashboardPerformanceSeriesLineDto = {
+  id: string;
+  label: string;
+  kind: string;
+  points: DashboardPerformancePointDto[];
+};
+
+export type DashboardPerformanceSeriesDto = {
+  groupBy: string;
+  axisMode: string;
+  currentSeries: DashboardPerformanceSeriesLineDto;
+  comparisonSeries: DashboardPerformanceSeriesLineDto[];
+  forecastSeries: DashboardPerformanceSeriesLineDto | null;
+};
+
 export type DashboardOverviewDto = {
   revenueTotal: number;
   costsTotal: number;
@@ -89,6 +116,31 @@ export async function getDashboardSummary(opts?: { from?: IsoDateTime; to?: IsoD
 export async function getDashboardOverview(opts?: { from?: IsoDateTime; to?: IsoDateTime }): Promise<DashboardOverviewDto> {
   const qs = toQuery({ from: opts?.from, to: opts?.to });
   return apiJsonServer<DashboardOverviewDto>(`/dashboard/overview${qs}`, { cache: "no-store" });
+}
+
+export async function getPerformanceSeries(opts?: {
+  groupBy?: "day" | "month";
+  from?: IsoDateTime;
+  to?: IsoDateTime;
+  tzOffsetMinutes?: number;
+  compareYears?: number[];
+  compareMonths?: string[];
+  includeForecast?: boolean;
+  forecastPeriods?: number;
+}): Promise<DashboardPerformanceSeriesDto> {
+  const params: Record<string, string | number | boolean | null | undefined> = {
+    groupBy: opts?.groupBy ?? "day",
+    from: opts?.from,
+    to: opts?.to,
+    tzOffsetMinutes: opts?.tzOffsetMinutes ?? 0,
+    compareYears: opts?.compareYears?.length ? opts.compareYears.join(",") : undefined,
+    compareMonths: opts?.compareMonths?.length ? opts.compareMonths.join(",") : undefined,
+    includeForecast: opts?.includeForecast ?? false,
+    forecastPeriods: opts?.forecastPeriods ?? 3,
+  };
+
+  const qs = toQuery(params);
+  return apiJsonServer<DashboardPerformanceSeriesDto>(`/dashboard/performance-series${qs}`, { cache: "no-store" });
 }
 
 export async function getSalesByPeriod(opts?: {

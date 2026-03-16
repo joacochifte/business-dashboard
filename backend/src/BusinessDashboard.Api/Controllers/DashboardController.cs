@@ -25,6 +25,45 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("performance-series")]
+    public async Task<IActionResult> GetPerformanceSeries(
+        [FromQuery] string groupBy = "day",
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] int tzOffsetMinutes = 0,
+        [FromQuery] string? compareYears = null,
+        [FromQuery] string? compareMonths = null,
+        [FromQuery] bool includeForecast = false,
+        [FromQuery] int forecastPeriods = 3,
+        CancellationToken ct = default)
+    {
+        if (from is not null && to is not null && from > to)
+            return BadRequest("'from' must be <= 'to'.");
+
+        try
+        {
+            var compareYearOffsets = ParseCompareYears(compareYears);
+            var compareMonthValues = ParseCompareMonths(compareMonths);
+
+            var result = await dashboard.GetPerformanceSeriesAsync(
+                groupBy,
+                from,
+                to,
+                tzOffsetMinutes,
+                compareYearOffsets,
+                compareMonthValues,
+                includeForecast,
+                forecastPeriods,
+                ct);
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet("sales-by-period")]
     public async Task<IActionResult> GetSalesByPeriod(
         [FromQuery] string groupBy = "day",
@@ -90,5 +129,36 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
 
         var result = await dashboard.GetSpendingByCustomerAsync(limit, from, to, excludeDebts, ct);
         return Ok(result);
+    }
+
+    private static IReadOnlyList<int> ParseCompareYears(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return Array.Empty<int>();
+
+        var values = raw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(v => int.TryParse(v, out var yearOffset) ? yearOffset : throw new ArgumentException("compareYears must be a comma-separated list of integers."))
+            .ToArray();
+
+        if (values.Any(v => v <= 0))
+            throw new ArgumentException("compareYears values must be positive integers.");
+
+        return values;
+    }
+
+    private static IReadOnlyList<string> ParseCompareMonths(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return Array.Empty<string>();
+
+        var values = raw
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToArray();
+
+        if (values.Any(v => !System.Text.RegularExpressions.Regex.IsMatch(v, @"^\d{4}-\d{2}$")))
+            throw new ArgumentException("compareMonths must be a comma-separated list using YYYY-MM format.");
+
+        return values;
     }
 }

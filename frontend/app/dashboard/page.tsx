@@ -1,6 +1,15 @@
-import { getDashboardOverview, getSalesByPeriod, getTopProducts, getSalesByCustomer, getSpendingByCustomer } from "@/lib/dashboard.api";
+import {
+  getDashboardOverview,
+  getPerformanceSeries,
+  getSalesByPeriod,
+  getTopProducts,
+  getSalesByCustomer,
+  getSpendingByCustomer,
+} from "@/lib/dashboard.api";
 import { getCosts, type CostSummaryDto } from "@/lib/costs.api";
 import TopProductsBarChart from "./ui/TopProductsBarChart";
+import PerformanceSeriesChart, { type PerformanceMetric } from "./ui/PerformanceSeriesChart";
+import PerformanceSeriesControls from "./ui/PerformanceSeriesControls";
 import PageShell from "../ui/PageShell";
 import ClientDateTime from "../ui/ClientDateTime";
 import TzOffsetField from "./ui/TzOffsetField";
@@ -71,6 +80,11 @@ function pickFirst(v: string | string[] | undefined): string | undefined {
   return v;
 }
 
+function pickAll(v: string | string[] | undefined): string[] {
+  if (Array.isArray(v)) return v;
+  return v ? [v] : [];
+}
+
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
@@ -124,6 +138,65 @@ function getPeriodStartForCost(iso: string, groupBy: "day" | "month") {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0)).toISOString();
 }
 
+type DateFilterStateInputsProps = {
+  mode: ViewMode;
+  year: number;
+  month: number;
+  day: number;
+  tzOffsetMinutes: number;
+};
+
+function DateFilterStateInputs({ mode, year, month, day, tzOffsetMinutes }: DateFilterStateInputsProps) {
+  return (
+    <>
+      <input type="hidden" name="view" value={mode} />
+      {mode === "daily" ? (
+        <input
+          type="hidden"
+          name="d"
+          value={`${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`}
+        />
+      ) : null}
+      {mode === "month" ? (
+        <>
+          <input type="hidden" name="y" value={year} />
+          <input type="hidden" name="m" value={String(month).padStart(2, "0")} />
+        </>
+      ) : null}
+      {mode === "year" ? <input type="hidden" name="y" value={year} /> : null}
+      <input type="hidden" name="tzOffset" value={tzOffsetMinutes} />
+    </>
+  );
+}
+
+type PerformanceStateInputsProps = {
+  performanceMetric: PerformanceMetric;
+  compareYears: number[];
+  compareMonthsRaw: string;
+  includeForecast: boolean;
+  forecastPeriods: number;
+};
+
+function PerformanceStateInputs({
+  performanceMetric,
+  compareYears,
+  compareMonthsRaw,
+  includeForecast,
+  forecastPeriods,
+}: PerformanceStateInputsProps) {
+  return (
+    <>
+      <input type="hidden" name="performanceMetric" value={performanceMetric} />
+      {compareYears.map((value) => (
+        <input key={value} type="hidden" name="compareYear" value={value} />
+      ))}
+      {compareMonthsRaw ? <input type="hidden" name="compareMonths" value={compareMonthsRaw} /> : null}
+      {includeForecast ? <input type="hidden" name="includeForecast" value="1" /> : null}
+      <input type="hidden" name="forecastPeriods" value={forecastPeriods} />
+    </>
+  );
+}
+
 export default async function DashboardPage({ searchParams }: Props) {
   const sp = searchParams ? await searchParams : {};
 
@@ -139,6 +212,29 @@ export default async function DashboardPage({ searchParams }: Props) {
   const tzOffsetMinutes =
     tzOffsetRaw === undefined ? clampTzOffsetMinutes(now.getTimezoneOffset()) : clampTzOffsetMinutes(Number(tzOffsetRaw) || 0);
   const topProductsSortBy = (pickFirst(sp.topProductsSortBy) as "revenue" | "quantity" | undefined) ?? "revenue";
+  const performanceMetricRaw = pickFirst(sp.performanceMetric);
+  const performanceMetric: PerformanceMetric =
+    performanceMetricRaw === "marginPct" || performanceMetricRaw === "gains" || performanceMetricRaw === "avgTicket"
+      ? performanceMetricRaw
+      : "revenue";
+  const includeForecast = pickFirst(sp.includeForecast) === "1";
+  const forecastPeriods = clamp(Number(pickFirst(sp.forecastPeriods) ?? 3) || 3, 1, 12);
+  const compareYears = Array.from(
+    new Set(
+      pickAll(sp.compareYear)
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value > 0),
+    ),
+  ).sort((a, b) => a - b);
+  const compareMonthsRaw = (pickFirst(sp.compareMonths) ?? "").trim();
+  const compareMonths = Array.from(
+    new Set(
+      compareMonthsRaw
+        .split(",")
+        .map((value) => value.trim())
+        .filter((value) => /^\d{4}-\d{2}$/.test(value)),
+    ),
+  ).sort();
 
   const ym = pickFirst(sp.ym); // legacy "YYYY-MM"
   const y = pickFirst(sp.y); // "YYYY"
@@ -200,8 +296,22 @@ export default async function DashboardPage({ searchParams }: Props) {
               groupBy: "day" as const,
             };
 
-  const [overview, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer] = await Promise.all([
+  const comparisonRangeEnabled = Boolean(range.from && range.to);
+  const effectiveCompareYears = comparisonRangeEnabled ? compareYears : [];
+  const effectiveCompareMonths = comparisonRangeEnabled && range.groupBy === "day" ? compareMonths : [];
+
+  const [overview, performanceSeries, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer] = await Promise.all([
     getDashboardOverview({ from: range.from, to: range.to }),
+    getPerformanceSeries({
+      groupBy: range.groupBy,
+      from: range.from,
+      to: range.to,
+      tzOffsetMinutes,
+      compareYears: effectiveCompareYears,
+      compareMonths: effectiveCompareMonths,
+      includeForecast: includeForecast && performanceMetric === "revenue",
+      forecastPeriods,
+    }),
     getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to, tzOffsetMinutes }),
     getTopProducts({ limit: 10, from: range.from, to: range.to, sortBy: topProductsSortBy }),
     getCosts({ startDate: range.from, endDate: range.to }),
@@ -229,6 +339,14 @@ export default async function DashboardPage({ searchParams }: Props) {
       <section className="mt-4 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
         <form className="grid gap-3 md:grid-cols-12" method="GET">
           <TzOffsetField />
+          <input type="hidden" name="topProductsSortBy" value={topProductsSortBy} />
+          <PerformanceStateInputs
+            performanceMetric={performanceMetric}
+            compareYears={compareYears}
+            compareMonthsRaw={compareMonthsRaw}
+            includeForecast={includeForecast}
+            forecastPeriods={forecastPeriods}
+          />
           <div className="md:col-span-4">
             <label className="grid gap-1">
               <span className="text-xs font-medium text-neutral-700">View</span>
@@ -403,6 +521,40 @@ export default async function DashboardPage({ searchParams }: Props) {
         </div>
       </section>
 
+      <section className="mt-6 rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-semibold text-neutral-900">Performance over time</h2>
+            <p className="text-xs text-neutral-600">
+              Current period in solid line, optional comparisons as overlays, forecast as dashed continuation.
+            </p>
+          </div>
+          <div className="text-xs text-neutral-500">Range: {range.label}</div>
+        </div>
+
+        <PerformanceSeriesControls
+          performanceMetric={performanceMetric}
+          compareYears={compareYears}
+          compareMonthsRaw={compareMonthsRaw}
+          includeForecast={includeForecast}
+          forecastPeriods={forecastPeriods}
+          comparisonRangeEnabled={comparisonRangeEnabled}
+          allowSpecificMonths={range.groupBy === "day"}
+        />
+
+        <div className="mt-4">
+          <PerformanceSeriesChart series={performanceSeries} metric={performanceMetric} />
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs text-neutral-500">
+          <span>Metric: {performanceMetric === "marginPct" ? "Margin %" : performanceMetric === "avgTicket" ? "Average ticket" : performanceMetric === "gains" ? "Gains" : "Revenue"}</span>
+          <span>Comparisons: {effectiveCompareYears.length + effectiveCompareMonths.length}</span>
+          <span>
+            Forecast: {includeForecast && performanceMetric === "revenue" ? `${performanceSeries.forecastSeries?.points.length ?? 0} visible point(s)` : "Revenue only"}
+          </span>
+        </div>
+      </section>
+
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-black/10 bg-white/60 p-5 shadow-sm backdrop-blur">
           <div className="flex items-center justify-between">
@@ -502,22 +654,14 @@ export default async function DashboardPage({ searchParams }: Props) {
               </p>
             </div>
             <form method="get" className="flex gap-2">
-              <input type="hidden" name="view" value={mode} />
-              {mode === "daily" && (
-                <>
-                  <input type="hidden" name="y" value={year} />
-                  <input type="hidden" name="m" value={month} />
-                  <input type="hidden" name="d" value={`${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`} />
-                </>
-              )}
-              {mode === "month" && (
-                <>
-                  <input type="hidden" name="y" value={year} />
-                  <input type="hidden" name="m" value={String(month).padStart(2, "0")} />
-                </>
-              )}
-              {mode === "year" && <input type="hidden" name="y" value={year} />}
-              <input type="hidden" name="tzOffset" value={tzOffsetMinutes} />
+              <DateFilterStateInputs mode={mode} year={year} month={month} day={day} tzOffsetMinutes={tzOffsetMinutes} />
+              <PerformanceStateInputs
+                performanceMetric={performanceMetric}
+                compareYears={compareYears}
+                compareMonthsRaw={compareMonthsRaw}
+                includeForecast={includeForecast}
+                forecastPeriods={forecastPeriods}
+              />
               <select
                 name="topProductsSortBy"
                 defaultValue={topProductsSortBy}
