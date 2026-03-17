@@ -25,6 +25,7 @@ public static class ServiceFactory
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<ICostRepository, CostRepository>();
         services.AddScoped<ICostService, CostService>();
+        services.AddScoped<IForecastStrategySelector, ForecastStrategySelector>();
         services.AddScoped<IForecastStrategy, HistoricalAverageForecastStrategy>();
         services.AddScoped<IForecastStrategy, YearRegressionForecastStrategy>();
         services.AddScoped<IForecastService, ForecastService>();

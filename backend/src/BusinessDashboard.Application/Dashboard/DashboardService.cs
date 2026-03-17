@@ -96,6 +96,7 @@ public sealed class DashboardService : IDashboardService
         DateTime? to = null,
         int tzOffsetMinutes = 0,
         IReadOnlyList<int>? compareYearOffsets = null,
+        string? forecastModel = null,
         bool includeForecast = false,
         CancellationToken ct = default)
     {
@@ -169,10 +170,11 @@ public sealed class DashboardService : IDashboardService
             }
         }
 
-        var forecastSeries = includeForecast
-            ? _forecastService.BuildForecastSeries(new ForecastRequest
+        var forecast = includeForecast
+            ? _forecastService.BuildForecast(new ForecastRequest
             {
                 CurrentSeries = currentSeries,
+                RequestedModelKey = forecastModel,
                 GroupBy = normalized,
                 TzOffsetMinutes = tzOffsetMinutes,
                 HasFixedRange = from is not null && to is not null,
@@ -186,7 +188,7 @@ public sealed class DashboardService : IDashboardService
             AxisMode = normalized == "day" ? "day_of_period" : "month_of_period",
             CurrentSeries = currentSeries,
             ComparisonSeries = comparisonSeries,
-            ForecastSeries = forecastSeries
+            ForecastSeries = forecast?.Series
         };
     }
 

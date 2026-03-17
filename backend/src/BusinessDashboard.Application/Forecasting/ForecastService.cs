@@ -6,15 +6,17 @@ namespace BusinessDashboard.Application.Forecasting;
 public sealed class ForecastService : IForecastService
 {
     private readonly IReadOnlyList<IForecastStrategy> _strategies;
+    private readonly IForecastStrategySelector _selector;
 
-    public ForecastService(IEnumerable<IForecastStrategy> strategies)
+    public ForecastService(IEnumerable<IForecastStrategy> strategies, IForecastStrategySelector selector)
     {
         _strategies = strategies.ToArray();
+        _selector = selector;
     }
 
-    public DashboardPerformanceSeriesLineDto? BuildForecastSeries(ForecastRequest request)
+    public ForecastResult? BuildForecast(ForecastRequest request)
     {
-        var strategy = _strategies.FirstOrDefault(candidate => candidate.CanHandle(request));
-        return strategy?.BuildForecastSeries(request);
+        var strategy = _selector.Select(request, _strategies);
+        return strategy?.BuildForecast(request);
     }
 }

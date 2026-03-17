@@ -5,6 +5,7 @@ import type {
   CustomerSpendingDto,
   DashboardOverviewDto,
   DashboardPerformanceSeriesDto,
+  ForecastModelKey,
   SalesByPeriodDto,
   TopProductDto,
 } from "@/lib/dashboard.api";
@@ -28,6 +29,7 @@ type Props = {
   tzOffsetMinutes: number;
   topProductsSortBy: "revenue" | "quantity";
   performanceMetric: PerformanceMetric;
+  forecastModel: "auto" | ForecastModelKey;
   compareYears: number[];
   includeForecast: boolean;
   comparisonRangeEnabled: boolean;
@@ -135,18 +137,21 @@ function DateFilterStateInputs({ mode, year, month, day, tzOffsetMinutes }: Date
 
 type PerformanceStateInputsProps = {
   performanceMetric: PerformanceMetric;
+  forecastModel: "auto" | ForecastModelKey;
   compareYears: number[];
   includeForecast: boolean;
 };
 
 function PerformanceStateInputs({
   performanceMetric,
+  forecastModel,
   compareYears,
   includeForecast,
 }: PerformanceStateInputsProps) {
   return (
     <>
       <input type="hidden" name="performanceMetric" value={performanceMetric} />
+      {forecastModel !== "auto" ? <input type="hidden" name="forecastModel" value={forecastModel} /> : null}
       {compareYears.map((value) => (
         <input key={value} type="hidden" name="compareYear" value={value} />
       ))}
@@ -287,6 +292,7 @@ export default function DashboardView({
   tzOffsetMinutes,
   topProductsSortBy,
   performanceMetric,
+  forecastModel,
   compareYears,
   includeForecast,
   comparisonRangeEnabled,
@@ -330,6 +336,7 @@ export default function DashboardView({
           <input type="hidden" name="topProductsSortBy" value={topProductsSortBy} />
           <PerformanceStateInputs
             performanceMetric={performanceMetric}
+            forecastModel={forecastModel}
             compareYears={compareYears}
             includeForecast={includeForecast}
           />
@@ -511,6 +518,7 @@ export default function DashboardView({
           <div className="rounded-[28px] border border-black/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.85),rgba(250,245,237,0.8))] p-4 shadow-inner sm:p-5">
             <PerformanceSeriesControls
               performanceMetric={performanceMetric}
+              forecastModel={forecastModel}
               compareYears={compareYears}
               includeForecast={includeForecast}
               comparisonRangeEnabled={comparisonRangeEnabled}
@@ -546,8 +554,9 @@ export default function DashboardView({
                 {includeForecast && performanceMetric === "revenue" ? `${visibleForecastPoints} future point(s)` : "Revenue only"}
               </div>
               <p className="mt-2 text-sm leading-6 text-neutral-600">
-                When forecast is enabled, the remaining part of the selected period is projected using the previous three
-                years as the base.
+                {forecastModel === "auto"
+                  ? "When forecast is enabled, the backend picks the best available strategy automatically."
+                  : `Using ${forecastModel === "historical_average" ? "Historical average" : "Year regression"} as the requested forecast model.`}
               </p>
             </div>
           </div>
@@ -629,6 +638,7 @@ export default function DashboardView({
             <DateFilterStateInputs mode={mode} year={year} month={month} day={day} tzOffsetMinutes={tzOffsetMinutes} />
             <PerformanceStateInputs
               performanceMetric={performanceMetric}
+              forecastModel={forecastModel}
               compareYears={compareYears}
               includeForecast={includeForecast}
             />

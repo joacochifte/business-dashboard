@@ -1,4 +1,5 @@
 import {
+  type ForecastModelKey,
   getDashboardOverview,
   getPerformanceSeries,
   getSalesByCustomer,
@@ -85,6 +86,9 @@ export default async function DashboardPage({ searchParams }: Props) {
     performanceMetricRaw === "marginPct" || performanceMetricRaw === "gains" || performanceMetricRaw === "avgTicket"
       ? performanceMetricRaw
       : "revenue";
+  const forecastModelRaw = pickFirst(sp.forecastModel);
+  const forecastModel: "auto" | ForecastModelKey =
+    forecastModelRaw === "historical_average" || forecastModelRaw === "year_regression" ? forecastModelRaw : "auto";
   const includeForecast = pickFirst(sp.includeForecast) === "1";
 
   const compareYears = Array.from(
@@ -167,6 +171,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       to: range.to,
       tzOffsetMinutes,
       compareYears: effectiveCompareYears,
+      forecastModel: forecastModel === "auto" ? undefined : forecastModel,
       includeForecast: effectiveIncludeForecast,
     }),
     getSalesByPeriod({ groupBy: range.groupBy, from: range.from, to: range.to, tzOffsetMinutes }),
@@ -185,6 +190,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       tzOffsetMinutes={tzOffsetMinutes}
       topProductsSortBy={topProductsSortBy}
       performanceMetric={performanceMetric}
+      forecastModel={forecastModel}
       compareYears={compareYears}
       includeForecast={effectiveIncludeForecast}
       comparisonRangeEnabled={comparisonRangeEnabled}

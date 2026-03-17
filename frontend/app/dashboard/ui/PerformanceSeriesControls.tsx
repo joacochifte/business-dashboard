@@ -3,10 +3,12 @@
 import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import type { ForecastModelKey } from "@/lib/dashboard.api";
 import type { PerformanceMetric } from "./PerformanceSeriesChart";
 
 type Props = {
   performanceMetric: PerformanceMetric;
+  forecastModel: "auto" | ForecastModelKey;
   compareYears: number[];
   includeForecast: boolean;
   comparisonRangeEnabled: boolean;
@@ -19,10 +21,17 @@ const METRIC_OPTIONS: Array<{ value: PerformanceMetric; label: string }> = [
   { value: "avgTicket", label: "Avg ticket" },
 ];
 
+const FORECAST_MODEL_OPTIONS: Array<{ value: "auto" | ForecastModelKey; label: string }> = [
+  { value: "auto", label: "Automatic" },
+  { value: "historical_average", label: "Historical average" },
+  { value: "year_regression", label: "Year regression" },
+];
+
 const YEAR_OPTIONS = [1, 2, 3];
 
 export default function PerformanceSeriesControls({
   performanceMetric,
+  forecastModel,
   compareYears,
   includeForecast,
   comparisonRangeEnabled,
@@ -71,6 +80,16 @@ export default function PerformanceSeriesControls({
         params.set("includeForecast", "1");
       } else {
         params.delete("includeForecast");
+      }
+    });
+  }
+
+  function updateForecastModel(nextValue: "auto" | ForecastModelKey) {
+    replaceParams((params) => {
+      if (nextValue === "auto") {
+        params.delete("forecastModel");
+      } else {
+        params.set("forecastModel", nextValue);
       }
     });
   }
@@ -128,38 +147,53 @@ export default function PerformanceSeriesControls({
             </div>
           </div>
 
-          <div className="flex sm:justify-end">
-            <label
-              className={`inline-flex min-w-[150px] items-center justify-between rounded-full border px-4 py-2.5 shadow-sm transition ${
-                performanceMetric === "revenue" && comparisonRangeEnabled
-                  ? "cursor-pointer border-black/10 bg-white/90"
-                  : "cursor-not-allowed border-black/5 bg-white/40"
-              }`}
-            >
-              <span
-                className="text-sm font-medium text-neutral-800"
+          <div className="grid gap-3 sm:justify-end">
+            <label className="grid gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Forecast model</span>
+              <select
+                value={forecastModel}
+                onChange={(event) => updateForecastModel(event.target.value as "auto" | ForecastModelKey)}
+                className="min-w-[190px] rounded-[18px] border border-black/10 bg-white/80 px-3.5 py-2 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-white focus:border-black/20 focus:outline-none focus:ring-2 focus:ring-black/5"
               >
-                Forecast
-              </span>
-              <span
-                className={`relative inline-flex h-6 w-11 rounded-full transition ${
-                  includeForecast && performanceMetric === "revenue" ? "bg-neutral-950" : "bg-neutral-300"
+                {FORECAST_MODEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="flex sm:justify-end">
+              <label
+                className={`inline-flex min-w-[150px] items-center justify-between rounded-full border px-4 py-2.5 shadow-sm transition ${
+                  performanceMetric === "revenue" && comparisonRangeEnabled
+                    ? "cursor-pointer border-black/10 bg-white/90"
+                    : "cursor-not-allowed border-black/5 bg-white/40"
                 }`}
               >
+                <span className="text-sm font-medium text-neutral-800">
+                  Forecast
+                </span>
                 <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                    includeForecast && performanceMetric === "revenue" ? "translate-x-[22px]" : "translate-x-0.5"
+                  className={`relative inline-flex h-6 w-11 rounded-full transition ${
+                    includeForecast && performanceMetric === "revenue" ? "bg-neutral-950" : "bg-neutral-300"
                   }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                      includeForecast && performanceMetric === "revenue" ? "translate-x-[22px]" : "translate-x-0.5"
+                    }`}
+                  />
+                </span>
+                <input
+                  type="checkbox"
+                  checked={includeForecast}
+                  onChange={(event) => toggleForecast(event.target.checked)}
+                  disabled={performanceMetric !== "revenue" || !comparisonRangeEnabled}
+                  className="sr-only"
                 />
-              </span>
-              <input
-                type="checkbox"
-                checked={includeForecast}
-                onChange={(event) => toggleForecast(event.target.checked)}
-                disabled={performanceMetric !== "revenue" || !comparisonRangeEnabled}
-                className="sr-only"
-              />
-            </label>
+              </label>
+            </div>
           </div>
         </div>
       </div>

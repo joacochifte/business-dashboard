@@ -6,11 +6,12 @@ namespace BusinessDashboard.Application.Forecasting.Strategies;
 public sealed class HistoricalAverageForecastStrategy : IForecastStrategy
 {
     public string Key => "historical_average";
+    public string Label => "Historical average";
 
-    public bool CanHandle(ForecastRequest request)
-        => request.HasFixedRange && request.CurrentSeries.Points.Count > 0 && request.YearComparisonSeries.Count > 0;
+    public int GetPriority(ForecastRequest request)
+        => request.HasFixedRange && request.CurrentSeries.Points.Count > 0 && request.YearComparisonSeries.Count > 0 ? 200 : -1;
 
-    public DashboardPerformanceSeriesLineDto? BuildForecastSeries(ForecastRequest request)
+    public ForecastResult? BuildForecast(ForecastRequest request)
     {
         var currentSlotStart = GetPeriodStart(DateTime.UtcNow, request.GroupBy, request.TzOffsetMinutes);
         var targetPoints = request.CurrentSeries.Points
@@ -45,12 +46,20 @@ public sealed class HistoricalAverageForecastStrategy : IForecastStrategy
         if (forecastPoints.Count == 0)
             return null;
 
-        return new DashboardPerformanceSeriesLineDto
+        return new ForecastResult
         {
-            Id = "forecast",
-            Label = $"Forecast ({request.YearComparisonSeries.Count}y avg)",
-            Kind = "forecast",
-            Points = forecastPoints
+            ModelKey = Key,
+            ModelLabel = Label,
+            Priority = GetPriority(request),
+            UsedHistoricalComparisons = true,
+            BasisYearsCount = request.YearComparisonSeries.Count,
+            Series = new DashboardPerformanceSeriesLineDto
+            {
+                Id = "forecast",
+                Label = $"Forecast ({request.YearComparisonSeries.Count}y avg)",
+                Kind = "forecast",
+                Points = forecastPoints
+            }
         };
     }
 

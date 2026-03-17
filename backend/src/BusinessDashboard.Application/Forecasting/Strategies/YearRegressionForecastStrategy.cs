@@ -6,11 +6,12 @@ namespace BusinessDashboard.Application.Forecasting.Strategies;
 public sealed class YearRegressionForecastStrategy : IForecastStrategy
 {
     public string Key => "year_regression";
+    public string Label => "Year regression";
 
-    public bool CanHandle(ForecastRequest request)
-        => request.HasFixedRange && request.CurrentSeries.Points.Count > 0;
+    public int GetPriority(ForecastRequest request)
+        => request.HasFixedRange && request.CurrentSeries.Points.Count > 0 ? 100 : -1;
 
-    public DashboardPerformanceSeriesLineDto? BuildForecastSeries(ForecastRequest request)
+    public ForecastResult? BuildForecast(ForecastRequest request)
     {
         var currentSlotStart = GetPeriodStart(DateTime.UtcNow, request.GroupBy, request.TzOffsetMinutes);
         var source = request.CurrentSeries.Points
@@ -59,12 +60,20 @@ public sealed class YearRegressionForecastStrategy : IForecastStrategy
             });
         }
 
-        return new DashboardPerformanceSeriesLineDto
+        return new ForecastResult
         {
-            Id = "forecast",
-            Label = request.YearComparisonSeries.Count > 0 ? $"Forecast ({request.YearComparisonSeries.Count}y regression)" : "Forecast",
-            Kind = "forecast",
-            Points = forecastPoints
+            ModelKey = Key,
+            ModelLabel = Label,
+            Priority = GetPriority(request),
+            UsedHistoricalComparisons = request.YearComparisonSeries.Count > 0,
+            BasisYearsCount = request.YearComparisonSeries.Count,
+            Series = new DashboardPerformanceSeriesLineDto
+            {
+                Id = "forecast",
+                Label = request.YearComparisonSeries.Count > 0 ? $"Forecast ({request.YearComparisonSeries.Count}y regression)" : "Forecast",
+                Kind = "forecast",
+                Points = forecastPoints
+            }
         };
     }
 

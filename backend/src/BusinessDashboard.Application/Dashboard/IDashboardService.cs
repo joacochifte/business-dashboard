@@ -10,6 +10,7 @@ public interface IDashboardService
         DateTime? to = null,
         int tzOffsetMinutes = 0,
         IReadOnlyList<int>? compareYearOffsets = null,
+        string? forecastModel = null,
         bool includeForecast = false,
         CancellationToken ct = default);
     Task<SalesByPeriodDto> GetSalesByPeriodAsync(string groupBy, DateTime? from = null, DateTime? to = null, int tzOffsetMinutes = 0, CancellationToken ct = default);

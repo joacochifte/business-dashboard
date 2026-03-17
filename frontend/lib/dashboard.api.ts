@@ -71,6 +71,8 @@ export type DashboardPerformanceSeriesLineDto = {
   points: DashboardPerformancePointDto[];
 };
 
+export type ForecastModelKey = "historical_average" | "year_regression";
+
 export type DashboardPerformanceSeriesDto = {
   groupBy: string;
   axisMode: string;
@@ -124,6 +126,7 @@ export async function getPerformanceSeries(opts?: {
   to?: IsoDateTime;
   tzOffsetMinutes?: number;
   compareYears?: number[];
+  forecastModel?: ForecastModelKey;
   includeForecast?: boolean;
 }): Promise<DashboardPerformanceSeriesDto> {
   const params: Record<string, string | number | boolean | null | undefined> = {
@@ -132,6 +135,7 @@ export async function getPerformanceSeries(opts?: {
     to: opts?.to,
     tzOffsetMinutes: opts?.tzOffsetMinutes ?? 0,
     compareYears: opts?.compareYears?.length ? opts.compareYears.join(",") : undefined,
+    forecastModel: opts?.forecastModel,
     includeForecast: opts?.includeForecast ?? false,
   };
 

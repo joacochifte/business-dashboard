@@ -32,6 +32,7 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
         [FromQuery] DateTime? to = null,
         [FromQuery] int tzOffsetMinutes = 0,
         [FromQuery] string? compareYears = null,
+        [FromQuery] string? forecastModel = null,
         [FromQuery] bool includeForecast = false,
         CancellationToken ct = default)
     {
@@ -48,6 +49,7 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
                 to,
                 tzOffsetMinutes,
                 compareYearOffsets,
+                forecastModel,
                 includeForecast,
                 ct);
 
