@@ -115,33 +115,49 @@ SELECT
 FROM tmp_products;
 
 CREATE TEMP TABLE tmp_sales_base AS
+WITH seeded_sales AS (
+  SELECT
+    gs,
+    (ARRAY[2026, 2025, 2024, 2023])[1 + ((gs - 1) / 120)] AS "SaleYear",
+    1 + ((gs - 1) % 120) AS "YearSeed"
+  FROM generate_series(1, 480) AS gs
+)
 SELECT
   gen_random_uuid() AS "Id",
-  gs AS "SeedNo",
+  ss.gs AS "SeedNo",
   CASE
-    WHEN gs % 5 = 0 THEN NULL
+    WHEN ss.gs % 5 = 0 THEN NULL
     ELSE (
       SELECT c."Id"
       FROM tmp_customers AS c
-      ORDER BY md5(c."Id"::text || '-' || gs::text)
+      ORDER BY md5(c."Id"::text || '-' || ss.gs::text)
       LIMIT 1
     )
   END AS "CustomerId",
   CASE
-    WHEN gs % 6 = 0 THEN 'Transfer'
-    WHEN gs % 5 = 0 THEN 'Mercado Pago'
-    WHEN gs % 2 = 0 THEN 'Card'
+    WHEN ss.gs % 6 = 0 THEN 'Transfer'
+    WHEN ss.gs % 5 = 0 THEN 'Mercado Pago'
+    WHEN ss.gs % 2 = 0 THEN 'Card'
     ELSE 'Cash'
   END AS "PaymentMethod",
-  (gs % 7 = 0) AS "IsDebt",
+  (ss.gs % 7 = 0) AS "IsDebt",
   CASE
-    WHEN gs % 7 = 0 THEN format('Venta fiada #%s', lpad(gs::text, 4, '0'))
-    WHEN gs % 9 = 0 THEN 'Cliente frecuente'
-    WHEN gs % 13 = 0 THEN 'Entrega parcial'
+    WHEN ss.gs % 7 = 0 THEN format('Venta fiada #%s', lpad(ss.gs::text, 4, '0'))
+    WHEN ss.gs % 9 = 0 THEN 'Cliente frecuente'
+    WHEN ss.gs % 13 = 0 THEN 'Entrega parcial'
     ELSE NULL
   END AS "Notes",
-  now() - make_interval(days => (gs * 2) % 540, hours => (gs * 3) % 10, mins => (gs * 11) % 60) AS "CreatedAt"
-FROM generate_series(1, 360) AS gs;
+  make_timestamptz(
+    ss."SaleYear",
+    1 + ((ss."YearSeed" * 5) % 12),
+    1,
+    8 + ((ss."YearSeed" * 3) % 10),
+    (ss."YearSeed" * 11) % 60,
+    0,
+    'UTC'
+  )
+  + make_interval(days => (ss."YearSeed" * 7) % 28) AS "CreatedAt"
+FROM seeded_sales AS ss;
 
 CREATE TEMP TABLE tmp_sale_items AS
 SELECT
@@ -227,6 +243,13 @@ INSERT INTO "Costs" (
   "DateIncurred",
   "Description"
 )
+WITH seeded_costs AS (
+  SELECT
+    gs,
+    (ARRAY[2026, 2025, 2024, 2023])[1 + ((gs - 1) / 60)] AS "CostYear",
+    1 + ((gs - 1) % 60) AS "YearSeed"
+  FROM generate_series(1, 240) AS gs
+)
 SELECT
   gen_random_uuid() AS "Id",
   format(
@@ -240,13 +263,22 @@ SELECT
       'Impuestos',
       'Mantenimiento',
       'Software'
-    ])[1 + ((gs - 1) % 8)],
-    lpad(gs::text, 3, '0')
+    ])[1 + ((sc.gs - 1) % 8)],
+    lpad(sc.gs::text, 3, '0')
   ) AS "Name",
-  round((65 + (gs * 8.90) + ((gs % 11) * 13.75))::numeric, 2) AS "Amount",
-  now() - make_interval(days => (gs * 3) % 540, hours => (gs * 5) % 8) AS "DateIncurred",
-  format('Costo demo %s para pruebas de reportes y periodos.', gs) AS "Description"
-FROM generate_series(1, 180) AS gs;
+  round((65 + (sc.gs * 8.90) + ((sc.gs % 11) * 13.75))::numeric, 2) AS "Amount",
+  make_timestamptz(
+    sc."CostYear",
+    1 + ((sc."YearSeed" * 4) % 12),
+    1,
+    7 + ((sc."YearSeed" * 5) % 8),
+    (sc."YearSeed" * 9) % 60,
+    0,
+    'UTC'
+  )
+  + make_interval(days => (sc."YearSeed" * 9) % 28) AS "DateIncurred",
+  format('Costo demo %s para pruebas de reportes y periodos.', sc.gs) AS "Description"
+FROM seeded_costs AS sc;
 
 INSERT INTO "InventoryMovements" (
   "Id",
