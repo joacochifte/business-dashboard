@@ -260,6 +260,156 @@ public class DashboardServiceTests
                 includeForecast: false));
     }
 
+    [TestMethod]
+    public async Task GetSalesByPeriodAsync_ShouldGroupRevenueAndSalesCountByDay()
+    {
+        await using var db = CreateDbContext();
+        var product = new Product("Cable", 10m, initialStock: 10);
+        db.Products.Add(product);
+
+        db.Sales.AddRange(
+            new Sale([new SaleItem(product.Id, 1, 10m)], createdAt: Utc(2026, 3, 1, 10, 0)),
+            new Sale([new SaleItem(product.Id, 2, 10m)], createdAt: Utc(2026, 3, 1, 16, 0)),
+            new Sale([new SaleItem(product.Id, 1, 25m)], createdAt: Utc(2026, 3, 2, 11, 0)),
+            new Sale([new SaleItem(product.Id, 1, 99m)], isDebt: true, createdAt: Utc(2026, 3, 2, 12, 0)));
+        await db.SaveChangesAsync();
+
+        var service = new DashboardService(db, new StubForecastService());
+
+        var result = await service.GetSalesByPeriodAsync(
+            groupBy: "day",
+            from: Utc(2026, 3, 1, 0, 0),
+            to: Utc(2026, 3, 2, 23, 59));
+
+        Assert.AreEqual("day", result.GroupBy);
+        Assert.AreEqual(2, result.Points.Count);
+        Assert.AreEqual(Utc(2026, 3, 1, 0, 0), result.Points[0].PeriodStart);
+        Assert.AreEqual(2, result.Points[0].SalesCount);
+        Assert.AreEqual(30m, result.Points[0].Revenue);
+        Assert.AreEqual(Utc(2026, 3, 2, 0, 0), result.Points[1].PeriodStart);
+        Assert.AreEqual(1, result.Points[1].SalesCount);
+        Assert.AreEqual(25m, result.Points[1].Revenue);
+    }
+
+    [TestMethod]
+    public async Task GetTopProductsAsync_ShouldRespectLimitSortAndExcludeDebts()
+    {
+        await using var db = CreateDbContext();
+        var alpha = new Product("Alpha", 10m, initialStock: 10);
+        var beta = new Product("Beta", 20m, initialStock: 10);
+        var gamma = new Product("Gamma", 5m, initialStock: 10);
+        db.Products.AddRange(alpha, beta, gamma);
+
+        db.Sales.AddRange(
+            new Sale([new SaleItem(alpha.Id, 2, 10m), new SaleItem(beta.Id, 1, 20m)], createdAt: Utc(2026, 3, 1, 10, 0)),
+            new Sale([new SaleItem(alpha.Id, 1, 10m), new SaleItem(gamma.Id, 5, 5m)], createdAt: Utc(2026, 3, 2, 10, 0)),
+            new Sale([new SaleItem(beta.Id, 10, 20m)], isDebt: true, createdAt: Utc(2026, 3, 2, 12, 0)));
+        await db.SaveChangesAsync();
+
+        var service = new DashboardService(db, new StubForecastService());
+
+        var result = await service.GetTopProductsAsync(
+            limit: 2,
+            from: Utc(2026, 3, 1, 0, 0),
+            to: Utc(2026, 3, 2, 23, 59),
+            sortBy: "quantity");
+
+        Assert.AreEqual(2, result.Count);
+        Assert.AreEqual("Gamma", result[0].ProductName);
+        Assert.AreEqual(5, result[0].Quantity);
+        Assert.AreEqual(25m, result[0].Revenue);
+        Assert.AreEqual("Alpha", result[1].ProductName);
+        Assert.AreEqual(3, result[1].Quantity);
+        Assert.AreEqual(30m, result[1].Revenue);
+    }
+
+    [TestMethod]
+    public async Task GetSalesByCustomerAsync_ShouldAggregateAndOptionallyExcludeDebts()
+    {
+        await using var db = CreateDbContext();
+        var product = new Product("Speaker", 30m, initialStock: 10);
+        var alice = new Customer("Alice");
+        var bob = new Customer("Bob");
+        db.Products.Add(product);
+        db.Customers.AddRange(alice, bob);
+
+        var aliceSale1 = new Sale([new SaleItem(product.Id, 1, 30m)], customerId: alice.Id, createdAt: Utc(2026, 3, 1, 10, 0));
+        aliceSale1.SetCustomer(alice);
+        var aliceSale2 = new Sale([new SaleItem(product.Id, 1, 30m)], customerId: alice.Id, isDebt: true, createdAt: Utc(2026, 3, 1, 12, 0));
+        aliceSale2.SetCustomer(alice);
+        var bobSale = new Sale([new SaleItem(product.Id, 1, 30m)], customerId: bob.Id, createdAt: Utc(2026, 3, 1, 14, 0));
+        bobSale.SetCustomer(bob);
+
+        db.Sales.AddRange(aliceSale1, aliceSale2, bobSale);
+        await db.SaveChangesAsync();
+
+        var service = new DashboardService(db, new StubForecastService());
+
+        var excludingDebts = await service.GetSalesByCustomerAsync(
+            limit: 10,
+            from: Utc(2026, 3, 1, 0, 0),
+            to: Utc(2026, 3, 1, 23, 59),
+            excludeDebts: true);
+
+        Assert.AreEqual(2, excludingDebts.Count);
+        Assert.AreEqual("Alice", excludingDebts[0].CustomerName);
+        Assert.AreEqual(1, excludingDebts[0].SalesCount);
+        Assert.AreEqual("Bob", excludingDebts[1].CustomerName);
+        Assert.AreEqual(1, excludingDebts[1].SalesCount);
+
+        var includingDebts = await service.GetSalesByCustomerAsync(
+            limit: 10,
+            from: Utc(2026, 3, 1, 0, 0),
+            to: Utc(2026, 3, 1, 23, 59),
+            excludeDebts: false);
+
+        Assert.AreEqual("Alice", includingDebts[0].CustomerName);
+        Assert.AreEqual(2, includingDebts[0].SalesCount);
+    }
+
+    [TestMethod]
+    public async Task GetSpendingByCustomerAsync_ShouldAggregateRevenueAndExcludeDebtsByDefault()
+    {
+        await using var db = CreateDbContext();
+        var product = new Product("Phone", 50m, initialStock: 10);
+        var alice = new Customer("Alice");
+        var bob = new Customer("Bob");
+        db.Products.Add(product);
+        db.Customers.AddRange(alice, bob);
+
+        var aliceSale = new Sale([new SaleItem(product.Id, 2, 50m)], customerId: alice.Id, createdAt: Utc(2026, 3, 3, 10, 0));
+        aliceSale.SetCustomer(alice);
+        var bobSale = new Sale([new SaleItem(product.Id, 1, 80m)], customerId: bob.Id, createdAt: Utc(2026, 3, 3, 11, 0));
+        bobSale.SetCustomer(bob);
+        var debtSale = new Sale([new SaleItem(product.Id, 1, 200m)], customerId: bob.Id, isDebt: true, createdAt: Utc(2026, 3, 3, 12, 0));
+        debtSale.SetCustomer(bob);
+
+        db.Sales.AddRange(aliceSale, bobSale, debtSale);
+        await db.SaveChangesAsync();
+
+        var service = new DashboardService(db, new StubForecastService());
+
+        var excludingDebts = await service.GetSpendingByCustomerAsync(
+            limit: 10,
+            from: Utc(2026, 3, 3, 0, 0),
+            to: Utc(2026, 3, 3, 23, 59));
+
+        Assert.AreEqual(2, excludingDebts.Count);
+        Assert.AreEqual("Alice", excludingDebts[0].CustomerName);
+        Assert.AreEqual(100m, excludingDebts[0].TotalSpent);
+        Assert.AreEqual("Bob", excludingDebts[1].CustomerName);
+        Assert.AreEqual(80m, excludingDebts[1].TotalSpent);
+
+        var includingDebts = await service.GetSpendingByCustomerAsync(
+            limit: 10,
+            from: Utc(2026, 3, 3, 0, 0),
+            to: Utc(2026, 3, 3, 23, 59),
+            excludeDebts: false);
+
+        Assert.AreEqual("Bob", includingDebts[0].CustomerName);
+        Assert.AreEqual(280m, includingDebts[0].TotalSpent);
+    }
+
     private static AppDbContext CreateDbContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
