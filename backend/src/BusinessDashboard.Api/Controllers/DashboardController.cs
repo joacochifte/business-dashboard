@@ -32,9 +32,7 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
         [FromQuery] DateTime? to = null,
         [FromQuery] int tzOffsetMinutes = 0,
         [FromQuery] string? compareYears = null,
-        [FromQuery] string? compareMonths = null,
         [FromQuery] bool includeForecast = false,
-        [FromQuery] int forecastPeriods = 3,
         CancellationToken ct = default)
     {
         if (from is not null && to is not null && from > to)
@@ -43,7 +41,6 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
         try
         {
             var compareYearOffsets = ParseCompareYears(compareYears);
-            var compareMonthValues = ParseCompareMonths(compareMonths);
 
             var result = await dashboard.GetPerformanceSeriesAsync(
                 groupBy,
@@ -51,9 +48,7 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
                 to,
                 tzOffsetMinutes,
                 compareYearOffsets,
-                compareMonthValues,
                 includeForecast,
-                forecastPeriods,
                 ct);
 
             return Ok(result);
@@ -143,21 +138,6 @@ public class DashboardController(IDashboardService dashboard) : ControllerBase
 
         if (values.Any(v => v <= 0))
             throw new ArgumentException("compareYears values must be positive integers.");
-
-        return values;
-    }
-
-    private static IReadOnlyList<string> ParseCompareMonths(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return Array.Empty<string>();
-
-        var values = raw
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToArray();
-
-        if (values.Any(v => !System.Text.RegularExpressions.Regex.IsMatch(v, @"^\d{4}-\d{2}$")))
-            throw new ArgumentException("compareMonths must be a comma-separated list using YYYY-MM format.");
 
         return values;
     }

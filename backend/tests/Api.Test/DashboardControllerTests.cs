@@ -224,10 +224,9 @@ public class DashboardControllerTests
         Assert.AreEqual(from, _service.LastFrom);
         Assert.AreEqual(to, _service.LastTo);
 
-        _ = await _controller.GetPerformanceSeries("day", from, to, 0, "1,2", "2025-11", false, 3, CancellationToken.None);
+        _ = await _controller.GetPerformanceSeries("day", from, to, 0, "1,2", false, CancellationToken.None);
         Assert.AreEqual("day", _service.LastGroupBy);
         CollectionAssert.AreEqual(new[] { 1, 2 }, _service.LastCompareYearOffsets!.ToArray());
-        CollectionAssert.AreEqual(new[] { "2025-11" }, _service.LastCompareMonths!.ToArray());
 
         _ = await _controller.GetSalesByPeriod("week", from, to, 0, CancellationToken.None);
         Assert.AreEqual("week", _service.LastGroupBy);
@@ -250,7 +249,6 @@ public class DashboardControllerTests
         public string? LastGroupBy { get; private set; }
         public int? LastLimit { get; private set; }
         public IReadOnlyList<int>? LastCompareYearOffsets { get; private set; }
-        public IReadOnlyList<string>? LastCompareMonths { get; private set; }
 
         public Task<DashboardSummaryDto> GetSummaryAsync(DateTime? from = null, DateTime? to = null, CancellationToken ct = default)
         {
@@ -272,16 +270,13 @@ public class DashboardControllerTests
             DateTime? to = null,
             int tzOffsetMinutes = 0,
             IReadOnlyList<int>? compareYearOffsets = null,
-            IReadOnlyList<string>? compareMonths = null,
             bool includeForecast = false,
-            int forecastPeriods = 3,
             CancellationToken ct = default)
         {
             LastGroupBy = groupBy;
             LastFrom = from;
             LastTo = to;
             LastCompareYearOffsets = compareYearOffsets;
-            LastCompareMonths = compareMonths;
             return Task.FromResult(PerformanceSeriesResult);
         }
 

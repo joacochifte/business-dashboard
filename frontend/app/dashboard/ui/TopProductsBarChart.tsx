@@ -24,13 +24,13 @@ function formatMoney(v: number) {
 
 const BAR_COLORS = [
   "#111827",
+  "#9a3412",
   "#2563eb",
-  "#d97706",
-  "#059669",
-  "#dc2626",
+  "#0f766e",
+  "#7c2d12",
   "#7c3aed",
-  "#0891b2",
-  "#ea580c",
+  "#0ea5e9",
+  "#ca8a04",
   "#4f46e5",
   "#65a30d",
 ];
@@ -62,7 +62,7 @@ export default function TopProductsBarChart({ data, sortBy = "revenue" }: Props)
     <div className="w-full" style={{ height: chartHeight }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 20, left: 12, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <CartesianGrid strokeDasharray="4 6" stroke="#e7dfd3" />
           <XAxis
             type="number"
             tickLine={false}
@@ -80,7 +80,7 @@ export default function TopProductsBarChart({ data, sortBy = "revenue" }: Props)
             width={140}
           />
           <Tooltip
-            cursor={{ fill: "rgba(0,0,0,0.04)" }}
+            cursor={{ fill: "rgba(154,52,18,0.06)" }}
             formatter={(value, name) => {
               if (name === "revenue") return [formatMoney(Number(value)), "Revenue"];
               if (name === "quantity") return [String(value), "Quantity"];
@@ -88,12 +88,13 @@ export default function TopProductsBarChart({ data, sortBy = "revenue" }: Props)
             }}
             labelFormatter={(_, payload) => String(payload?.[0]?.payload?.name ?? "")}
             contentStyle={{
-              borderRadius: 12,
-              borderColor: "#e5e7eb",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+              borderRadius: 18,
+              borderColor: "rgba(15,23,42,0.08)",
+              backgroundColor: "rgba(255,251,244,0.96)",
+              boxShadow: "0 18px 40px rgba(41,24,9,0.12)",
             }}
           />
-          <Bar dataKey={sortBy} radius={[0, 10, 10, 0]} barSize={24}>
+          <Bar dataKey={sortBy} radius={[0, 12, 12, 0]} barSize={24}>
             {chartData.map((_, idx) => (
               <Cell key={idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
             ))}

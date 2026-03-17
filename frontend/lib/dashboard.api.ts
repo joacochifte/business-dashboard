@@ -124,9 +124,7 @@ export async function getPerformanceSeries(opts?: {
   to?: IsoDateTime;
   tzOffsetMinutes?: number;
   compareYears?: number[];
-  compareMonths?: string[];
   includeForecast?: boolean;
-  forecastPeriods?: number;
 }): Promise<DashboardPerformanceSeriesDto> {
   const params: Record<string, string | number | boolean | null | undefined> = {
     groupBy: opts?.groupBy ?? "day",
@@ -134,9 +132,7 @@ export async function getPerformanceSeries(opts?: {
     to: opts?.to,
     tzOffsetMinutes: opts?.tzOffsetMinutes ?? 0,
     compareYears: opts?.compareYears?.length ? opts.compareYears.join(",") : undefined,
-    compareMonths: opts?.compareMonths?.length ? opts.compareMonths.join(",") : undefined,
     includeForecast: opts?.includeForecast ?? false,
-    forecastPeriods: opts?.forecastPeriods ?? 3,
   };
 
   const qs = toQuery(params);

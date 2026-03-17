@@ -93,23 +93,14 @@ public sealed class DashboardService : IDashboardService
         DateTime? to = null,
         int tzOffsetMinutes = 0,
         IReadOnlyList<int>? compareYearOffsets = null,
-        IReadOnlyList<string>? compareMonths = null,
         bool includeForecast = false,
-        int forecastPeriods = 3,
         CancellationToken ct = default)
     {
         var normalized = NormalizePerformanceGroupBy(groupBy);
         var years = (compareYearOffsets ?? Array.Empty<int>()).Distinct().OrderBy(x => x).ToArray();
-        var months = (compareMonths ?? Array.Empty<string>()).Distinct().OrderBy(x => x).ToArray();
 
-        if ((years.Length > 0 || months.Length > 0) && (from is null || to is null))
+        if (years.Length > 0 && (from is null || to is null))
             throw new ArgumentException("Comparisons require both 'from' and 'to'.");
-
-        if (months.Length > 0 && normalized != "day")
-            throw new ArgumentException("compareMonths is only supported when groupBy is 'day'.");
-
-        if (forecastPeriods < 0)
-            throw new ArgumentException("forecastPeriods must be >= 0.", nameof(forecastPeriods));
 
         var currentSeries = await BuildPerformanceSeriesAsync(
             id: "current",
@@ -136,30 +127,24 @@ public sealed class DashboardService : IDashboardService
                     tzOffsetMinutes,
                     ct));
             }
-
-            foreach (var compareMonth in months)
-            {
-                var (monthFrom, monthTo, label) = GetMonthRange(compareMonth, tzOffsetMinutes);
-                comparisonSeries.Add(await BuildPerformanceSeriesAsync(
-                    id: $"month-{compareMonth}",
-                    label: label,
-                    kind: "comparison",
-                    monthFrom,
-                    monthTo,
-                    normalized,
-                    tzOffsetMinutes,
-                    ct));
-            }
         }
 
-        var forecastYearSeries = comparisonSeries
-            .Where(series => series.Id.StartsWith("year-", StringComparison.Ordinal))
-            .ToList();
-
-        if (includeForecast && from is not null && to is not null && forecastYearSeries.Count == 0)
+        var forecastYearSeries = new List<DashboardPerformanceSeriesLineDto>();
+        if (includeForecast && from is not null && to is not null)
         {
+            var comparisonYearSeries = comparisonSeries
+                .Select(series => new { Series = series, YearOffset = TryParseYearOffset(series.Id) })
+                .Where(x => x.YearOffset is not null)
+                .ToDictionary(x => x.YearOffset!.Value, x => x.Series);
+
             foreach (var yearOffset in new[] { 1, 2, 3 })
             {
+                if (comparisonYearSeries.TryGetValue(yearOffset, out var existingSeries))
+                {
+                    forecastYearSeries.Add(existingSeries);
+                    continue;
+                }
+
                 var series = await BuildPerformanceSeriesAsync(
                     id: $"forecast-year-{yearOffset}",
                     label: $"{yearOffset} year{(yearOffset == 1 ? "" : "s")} earlier",
@@ -170,8 +155,7 @@ public sealed class DashboardService : IDashboardService
                     tzOffsetMinutes,
                     ct);
 
-                if (series.Points.Any(point => point.Revenue > 0m))
-                    forecastYearSeries.Add(series);
+                forecastYearSeries.Add(series);
             }
         }
 
@@ -179,7 +163,6 @@ public sealed class DashboardService : IDashboardService
             ? BuildForecastSeries(
                 currentSeries,
                 normalized,
-                forecastPeriods,
                 tzOffsetMinutes,
                 hasFixedRange: from is not null && to is not null,
                 yearComparisonSeries: forecastYearSeries)
@@ -622,12 +605,11 @@ public sealed class DashboardService : IDashboardService
     private static DashboardPerformanceSeriesLineDto? BuildForecastSeries(
         DashboardPerformanceSeriesLineDto currentSeries,
         string groupBy,
-        int forecastPeriods,
         int tzOffsetMinutes,
         bool hasFixedRange,
         IReadOnlyList<DashboardPerformanceSeriesLineDto> yearComparisonSeries)
     {
-        if (forecastPeriods <= 0 || currentSeries.Points.Count == 0)
+        if (!hasFixedRange || currentSeries.Points.Count == 0)
             return null;
 
         var currentSlotStart = GetPeriodStart(DateTime.UtcNow, groupBy, tzOffsetMinutes);
@@ -638,14 +620,11 @@ public sealed class DashboardService : IDashboardService
         if (source.Count == 0)
             return null;
 
-        var targetPoints = hasFixedRange
-            ? currentSeries.Points
-                .Where(p => p.PeriodStart is not null && p.PeriodStart > currentSlotStart)
-                .Take(forecastPeriods)
-                .ToList()
-            : new List<DashboardPerformancePointDto>();
+        var targetPoints = currentSeries.Points
+            .Where(p => p.PeriodStart is not null && p.PeriodStart > currentSlotStart)
+            .ToList();
 
-        if (hasFixedRange && targetPoints.Count == 0)
+        if (targetPoints.Count == 0)
             return null;
 
         var count = source.Count;
@@ -657,77 +636,101 @@ public sealed class DashboardService : IDashboardService
         var slope = denominator == 0m ? 0m : ((count * sumXY) - (sumX * sumY)) / denominator;
         var intercept = count == 0 ? 0m : (sumY - (slope * sumX)) / count;
 
-        var lastPoint = source[^1];
-        var nextPeriodStart = lastPoint.PeriodStart;
-        var forecastPoints = new List<DashboardPerformancePointDto>(targetPoints.Count > 0 ? targetPoints.Count : forecastPeriods);
+        var forecastPoints = new List<DashboardPerformancePointDto>(targetPoints.Count);
 
-        if (targetPoints.Count > 0)
+        foreach (var targetPoint in targetPoints)
         {
-            foreach (var targetPoint in targetPoints)
-            {
-                var revenue = Math.Max(
-                    0m,
-                    TryGetHistoricalAverageRevenue(yearComparisonSeries, targetPoint.AxisIndex)
-                        ?? Math.Round(intercept + (slope * targetPoint.AxisIndex), 2));
+            var revenue = Math.Max(
+                0m,
+                TryPredictRevenueFromYearRegression(yearComparisonSeries, targetPoint)
+                    ?? Math.Round(intercept + (slope * targetPoint.AxisIndex), 2));
 
-                forecastPoints.Add(new DashboardPerformancePointDto
-                {
-                    AxisIndex = targetPoint.AxisIndex,
-                    AxisLabel = targetPoint.AxisLabel,
-                    PeriodStart = targetPoint.PeriodStart,
-                    Revenue = revenue,
-                    Costs = 0m,
-                    Gains = 0m,
-                    MarginPct = 0m,
-                    AvgTicket = 0m,
-                    SalesCount = 0
-                });
-            }
-        }
-        else
-        {
-            for (var i = 1; i <= forecastPeriods; i++)
+            forecastPoints.Add(new DashboardPerformancePointDto
             {
-                var axisIndex = lastPoint.AxisIndex + i;
-                nextPeriodStart = nextPeriodStart is null ? null : AddUtcSlot(nextPeriodStart.Value, groupBy, tzOffsetMinutes);
-                var revenue = Math.Max(0m, Math.Round(intercept + (slope * axisIndex), 2));
-
-                forecastPoints.Add(new DashboardPerformancePointDto
-                {
-                    AxisIndex = axisIndex,
-                    AxisLabel = FormatAxisLabel(axisIndex),
-                    PeriodStart = nextPeriodStart,
-                    Revenue = revenue,
-                    Costs = 0m,
-                    Gains = 0m,
-                    MarginPct = 0m,
-                    AvgTicket = 0m,
-                    SalesCount = 0
-                });
-            }
+                AxisIndex = targetPoint.AxisIndex,
+                AxisLabel = targetPoint.AxisLabel,
+                PeriodStart = targetPoint.PeriodStart,
+                Revenue = revenue,
+                Costs = 0m,
+                Gains = 0m,
+                MarginPct = 0m,
+                AvgTicket = 0m,
+                SalesCount = 0
+            });
         }
 
         return new DashboardPerformanceSeriesLineDto
         {
             Id = "forecast",
-            Label = yearComparisonSeries.Count > 0 ? $"Forecast ({yearComparisonSeries.Count}y avg)" : "Forecast",
+            Label = yearComparisonSeries.Count > 0 ? $"Forecast ({yearComparisonSeries.Count}y regression)" : "Forecast",
             Kind = "forecast",
             Points = forecastPoints
         };
     }
 
-    private static decimal? TryGetHistoricalAverageRevenue(IReadOnlyList<DashboardPerformanceSeriesLineDto> yearComparisonSeries, int axisIndex)
+    private static decimal? TryPredictRevenueFromYearRegression(
+        IReadOnlyList<DashboardPerformanceSeriesLineDto> yearComparisonSeries,
+        DashboardPerformancePointDto targetPoint)
     {
-        var values = yearComparisonSeries
-            .Select(series => series.Points.FirstOrDefault(point => point.AxisIndex == axisIndex))
-            .Where(point => point is not null)
-            .Select(point => point!.Revenue)
-            .ToList();
-
-        if (values.Count == 0)
+        if (targetPoint.PeriodStart is null)
             return null;
 
-        return Math.Round(values.Average(), 2);
+        var targetYear = targetPoint.PeriodStart.Value.Year;
+        var samples = yearComparisonSeries
+            .Select(series => new
+            {
+                YearOffset = TryParseYearOffset(series.Id),
+                Point = series.Points.FirstOrDefault(point => point.AxisIndex == targetPoint.AxisIndex)
+            })
+            .Where(x => x.YearOffset is not null && x.Point is not null)
+            .Select(x => new
+            {
+                Year = targetYear - x.YearOffset!.Value,
+                Revenue = x.Point!.Revenue
+            })
+            .ToList();
+
+        if (samples.Count == 0)
+            return null;
+
+        if (samples.Count == 1)
+            return Math.Round(samples[0].Revenue, 2);
+
+        var count = samples.Count;
+        var sumX = samples.Sum(sample => (decimal)sample.Year);
+        var sumY = samples.Sum(sample => sample.Revenue);
+        var sumXY = samples.Sum(sample => (decimal)sample.Year * sample.Revenue);
+        var sumXX = samples.Sum(sample => (decimal)sample.Year * sample.Year);
+        var denominator = (count * sumXX) - (sumX * sumX);
+
+        if (denominator == 0m)
+            return Math.Round(samples.Average(sample => sample.Revenue), 2);
+
+        var slope = ((count * sumXY) - (sumX * sumY)) / denominator;
+        var intercept = (sumY - (slope * sumX)) / count;
+        return Math.Round(intercept + (slope * targetYear), 2);
+    }
+
+    private static int? TryParseYearOffset(string id)
+    {
+        const string yearPrefix = "year-";
+        const string forecastYearPrefix = "forecast-year-";
+
+        if (id.StartsWith(forecastYearPrefix, StringComparison.Ordinal) &&
+            int.TryParse(id[forecastYearPrefix.Length..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var forecastYearOffset) &&
+            forecastYearOffset > 0)
+        {
+            return forecastYearOffset;
+        }
+
+        if (id.StartsWith(yearPrefix, StringComparison.Ordinal) &&
+            int.TryParse(id[yearPrefix.Length..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var yearOffset) &&
+            yearOffset > 0)
+        {
+            return yearOffset;
+        }
+
+        return null;
     }
 
     private static (DateTime From, DateTime To)? GetPreviousRange(DateTime? from, DateTime? to)
@@ -739,16 +742,6 @@ public sealed class DashboardService : IDashboardService
         var previousTo = from.Value.AddTicks(-1);
         var previousFrom = previousTo - duration;
         return (previousFrom, previousTo);
-    }
-
-    private static (DateTime From, DateTime To, string Label) GetMonthRange(string value, int tzOffsetMinutes)
-    {
-        if (!DateTime.TryParseExact($"{value}-01", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var monthLocal))
-            throw new ArgumentException("compareMonths values must use YYYY-MM format.");
-
-        var from = DateTime.SpecifyKind(monthLocal, DateTimeKind.Utc).AddMinutes(tzOffsetMinutes);
-        var to = DateTime.SpecifyKind(monthLocal.AddMonths(1), DateTimeKind.Utc).AddMinutes(tzOffsetMinutes).AddTicks(-1);
-        return (from, to, monthLocal.ToString("yyyy-MM", CultureInfo.InvariantCulture));
     }
 
     private static decimal? CalculateDeltaPct(decimal current, decimal previous)
