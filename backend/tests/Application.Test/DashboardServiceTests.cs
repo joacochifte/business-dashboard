@@ -14,6 +14,53 @@ namespace Application.Test.Dashboard;
 public class DashboardServiceTests
 {
     [TestMethod]
+    public async Task GetSummaryAsync_ShouldCalculateRevenueGainsSalesCountAndAverageTicket()
+    {
+        await using var db = CreateDbContext();
+        var product = new Product("Monitor", 100m, initialStock: 10);
+        db.Products.Add(product);
+
+        db.Sales.AddRange(
+            new Sale([new SaleItem(product.Id, 1, 100m)], createdAt: Utc(2026, 3, 2, 10, 0)),
+            new Sale([new SaleItem(product.Id, 2, 50m)], createdAt: Utc(2026, 3, 2, 15, 0)),
+            new Sale([new SaleItem(product.Id, 1, 80m)], isDebt: true, createdAt: Utc(2026, 3, 2, 18, 0)),
+            new Sale([new SaleItem(product.Id, 1, 40m)], createdAt: Utc(2026, 3, 1, 12, 0)));
+
+        db.Costs.AddRange(
+            new Cost("Rent", 120m, Utc(2026, 3, 2, 8, 0)),
+            new Cost("Ads", 30m, Utc(2026, 3, 2, 9, 0)),
+            new Cost("Previous", 25m, Utc(2026, 3, 1, 9, 0)));
+        await db.SaveChangesAsync();
+
+        var service = new DashboardService(db, new StubForecastService());
+
+        var summary = await service.GetSummaryAsync(
+            from: Utc(2026, 3, 2, 0, 0),
+            to: Utc(2026, 3, 2, 23, 59));
+
+        Assert.AreEqual(200m, summary.RevenueTotal);
+        Assert.AreEqual(50m, summary.Gains);
+        Assert.AreEqual(2, summary.SalesCount);
+        Assert.AreEqual(100m, summary.AvgTicket);
+    }
+
+    [TestMethod]
+    public async Task GetSummaryAsync_WithEmptyPeriod_ShouldReturnZeros()
+    {
+        await using var db = CreateDbContext();
+        var service = new DashboardService(db, new StubForecastService());
+
+        var summary = await service.GetSummaryAsync(
+            from: Utc(2026, 5, 1, 0, 0),
+            to: Utc(2026, 5, 31, 23, 59));
+
+        Assert.AreEqual(0m, summary.RevenueTotal);
+        Assert.AreEqual(0m, summary.Gains);
+        Assert.AreEqual(0, summary.SalesCount);
+        Assert.AreEqual(0m, summary.AvgTicket);
+    }
+
+    [TestMethod]
     public async Task GetOverviewAsync_ShouldCalculateMetricsComparisonAndAlerts()
     {
         await using var db = CreateDbContext();
