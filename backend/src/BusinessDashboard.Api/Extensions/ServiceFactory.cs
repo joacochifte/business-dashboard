@@ -9,6 +9,8 @@ using BusinessDashboard.Application.Forecasting.Strategies;
 using BusinessDashboard.Application.Costs;
 using BusinessDashboard.Application.Customers;
 using BusinessDashboard.Application.Notifications;
+using BusinessDashboard.Application.Promotions;
+using BusinessDashboard.Application.Promotions.Scoring;
 using BusinessDashboard.Infrastructure.Jobs;
 
 namespace BusinessDashboard.Api.Extensions;
@@ -34,6 +36,9 @@ public static class ServiceFactory
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<IPromotionScoringStrategy, RfmPromotionScoringStrategy>();
+        services.AddScoped<IPromotionRecommendationService, PromotionRecommendationService>();
         services.AddHostedService<BirthdayNotificationJob>();
         return services;
     }
