@@ -52,6 +52,18 @@ export type CustomerSpendingDto = {
   totalSpent: number;
 };
 
+export type PromotionRecommendationDto = {
+  customerId: string;
+  customerName: string;
+  score: number;
+  reason: string;
+  daysSinceLastPurchase: number;
+  purchasesLast90Days: number;
+  avgTicket: number;
+  debtRatioPct: number;
+  totalPurchases: number;
+};
+
 export type DashboardPerformancePointDto = {
   axisIndex: number;
   axisLabel: string;
@@ -181,4 +193,11 @@ export async function getSpendingByCustomer(opts?: {
 }): Promise<CustomerSpendingDto[]> {
   const qs = toQuery({ limit: opts?.limit ?? 10, from: opts?.from, to: opts?.to, excludeDebts: opts?.excludeDebts ?? true });
   return apiJsonServer<CustomerSpendingDto[]>(`/dashboard/spending-by-customer${qs}`, { cache: "no-store" });
+}
+
+export async function getPromotionRecommendations(opts?: {
+  limit?: number;
+}): Promise<PromotionRecommendationDto[]> {
+  const qs = toQuery({ limit: opts?.limit ?? 5 });
+  return apiJsonServer<PromotionRecommendationDto[]>(`/promotions/recommendations${qs}`, { cache: "no-store" });
 }

@@ -1,5 +1,6 @@
 import {
   type ForecastModelKey,
+  getPromotionRecommendations,
   getDashboardOverview,
   getPerformanceSeries,
   getSalesByCustomer,
@@ -163,7 +164,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const effectiveCompareYears = comparisonRangeEnabled ? compareYears : [];
   const effectiveIncludeForecast = includeForecast && comparisonRangeEnabled && performanceMetric === "revenue";
 
-  const [overview, performanceSeries, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer] = await Promise.all([
+  const [overview, performanceSeries, byPeriod, topProducts, costs, salesByCustomer, spendingByCustomer, promotionRecommendations] = await Promise.all([
     getDashboardOverview({ from: range.from, to: range.to }),
     getPerformanceSeries({
       groupBy: range.groupBy,
@@ -179,6 +180,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     getCosts({ startDate: range.from, endDate: range.to }),
     getSalesByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
     getSpendingByCustomer({ limit: 10, from: range.from, to: range.to, excludeDebts: true }),
+    getPromotionRecommendations({ limit: 5 }),
   ]);
 
   return (
@@ -203,6 +205,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       topProducts={topProducts}
       salesByCustomer={salesByCustomer}
       spendingByCustomer={spendingByCustomer}
+      promotionRecommendations={promotionRecommendations}
       effectiveCompareYears={effectiveCompareYears}
     />
   );

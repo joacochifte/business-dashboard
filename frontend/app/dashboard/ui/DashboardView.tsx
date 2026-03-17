@@ -6,6 +6,7 @@ import type {
   DashboardOverviewDto,
   DashboardPerformanceSeriesDto,
   ForecastModelKey,
+  PromotionRecommendationDto,
   SalesByPeriodDto,
   TopProductDto,
 } from "@/lib/dashboard.api";
@@ -42,6 +43,7 @@ type Props = {
   topProducts: TopProductDto[];
   salesByCustomer: CustomerSalesDto[];
   spendingByCustomer: CustomerSpendingDto[];
+  promotionRecommendations: PromotionRecommendationDto[];
   effectiveCompareYears: number[];
 };
 
@@ -51,6 +53,10 @@ function formatMoney(v: number) {
 
 function formatPercent(v: number) {
   return `${v.toFixed(1)}%`;
+}
+
+function formatScore(v: number) {
+  return `${v.toFixed(0)}/100`;
 }
 
 function formatDeltaPct(v: number | null | undefined) {
@@ -305,6 +311,7 @@ export default function DashboardView({
   topProducts,
   salesByCustomer,
   spendingByCustomer,
+  promotionRecommendations,
   effectiveCompareYears,
 }: Props) {
   const points = byPeriod.points ?? [];
@@ -502,6 +509,57 @@ export default function DashboardView({
           meta="Tracked active products only"
         />
       </section>
+
+      <SectionCard
+        eyebrow="Promotion opportunities"
+        title="Customers with the strongest promo signal"
+        description="Baseline RFM scoring prioritizes recent, frequent and healthy customers while penalizing high debt exposure."
+        className="mt-6"
+      >
+        <div className="space-y-3">
+          {promotionRecommendations.length === 0 ? (
+            <EmptyState label="No promotion recommendations yet." />
+          ) : (
+            promotionRecommendations.map((recommendation) => (
+              <div
+                key={recommendation.customerId}
+                className="grid gap-3 rounded-[24px] border border-black/8 bg-white/70 px-4 py-4 shadow-sm lg:grid-cols-[minmax(0,1.2fr)_auto]"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="truncate text-base font-semibold text-neutral-950">{recommendation.customerName}</div>
+                    <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                      {formatScore(recommendation.score)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-neutral-700">{recommendation.reason}</p>
+                </div>
+
+                <div className="grid gap-2 text-sm text-neutral-700 sm:grid-cols-2 lg:min-w-[18rem] lg:grid-cols-1">
+                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Last purchase</div>
+                    <div className="mt-1 font-medium text-neutral-900">{recommendation.daysSinceLastPurchase} day(s) ago</div>
+                  </div>
+                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Recent frequency</div>
+                    <div className="mt-1 font-medium text-neutral-900">{recommendation.purchasesLast90Days} purchase(s) in 90d</div>
+                  </div>
+                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Average ticket</div>
+                    <div className="mt-1 font-medium text-neutral-900">{formatMoney(recommendation.avgTicket)}</div>
+                  </div>
+                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Debt ratio</div>
+                    <div className={`mt-1 font-medium ${recommendation.debtRatioPct >= 40 ? "text-red-700" : "text-neutral-900"}`}>
+                      {formatPercent(recommendation.debtRatioPct)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </SectionCard>
 
       <SectionCard
         eyebrow="Performance"
