@@ -1,4 +1,5 @@
 using BusinessDashboard.Infrastructure.Dashboard;
+using BusinessDashboard.Application.Forecasting.Strategies;
 
 namespace BusinessDashboard.Application.Forecasting;
 
