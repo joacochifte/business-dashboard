@@ -93,6 +93,15 @@ function axisLabelPrefix(axisMode: string) {
   return axisMode === "month_of_period" ? "Month" : "Day";
 }
 
+function isAbsoluteAxisLabel(label: string) {
+  return /^\d{4}-\d{2}(-\d{2})?$/.test(label);
+}
+
+function formatTooltipLabel(label: string | number, axisMode: string) {
+  const normalized = String(label);
+  return isAbsoluteAxisLabel(normalized) ? normalized : `${axisLabelPrefix(axisMode)} ${normalized}`;
+}
+
 function getForecastStartAxisIndex(series: DashboardPerformanceSeriesDto) {
   return series.forecastSeries?.points[0]?.axisIndex;
 }
@@ -228,7 +237,7 @@ export default function PerformanceSeriesChart({ series, metric }: Props) {
           />
           <Tooltip
             formatter={(value, _name, item) => [formatMetricValue(Number(value), metric), String(item.name ?? metricLabel(metric))]}
-            labelFormatter={(label) => `${axisLabelPrefix(series.axisMode)} ${String(label)}`}
+            labelFormatter={(label) => formatTooltipLabel(label, series.axisMode)}
             contentStyle={{
               borderRadius: 18,
               borderColor: "rgba(15,23,42,0.08)",

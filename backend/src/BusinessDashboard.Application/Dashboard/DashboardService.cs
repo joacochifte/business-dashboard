@@ -480,7 +480,7 @@ public sealed class DashboardService : IDashboardService
                 return new DashboardPerformancePointDto
                 {
                     AxisIndex = idx + 1,
-                    AxisLabel = FormatAxisLabel(idx + 1),
+                    AxisLabel = FormatPerformanceAxisLabel(idx + 1, slotStart, groupBy, from is not null && to is not null),
                     PeriodStart = slotStart,
                     Revenue = revenue,
                     Costs = costValue,
@@ -708,6 +708,20 @@ public sealed class DashboardService : IDashboardService
 
     private static string FormatAxisLabel(int axisIndex)
         => axisIndex < 100 ? axisIndex.ToString("00", CultureInfo.InvariantCulture) : axisIndex.ToString(CultureInfo.InvariantCulture);
+
+    private static string FormatPerformanceAxisLabel(int axisIndex, DateTime slotStart, string groupBy, bool hasFixedRange)
+    {
+        if (hasFixedRange)
+            return FormatAxisLabel(axisIndex);
+
+        var utcSlotStart = slotStart.ToUniversalTime();
+        return groupBy switch
+        {
+            "month" => utcSlotStart.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+            "day" => utcSlotStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            _ => FormatAxisLabel(axisIndex)
+        };
+    }
 
     private sealed class SalesSnapshot
     {

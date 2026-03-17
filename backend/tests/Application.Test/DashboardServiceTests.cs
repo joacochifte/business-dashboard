@@ -261,6 +261,30 @@ public class DashboardServiceTests
     }
 
     [TestMethod]
+    public async Task GetPerformanceSeriesAsync_AllTimeShouldUseAbsoluteMonthLabels()
+    {
+        await using var db = CreateDbContext();
+        var product = new Product("Tablet", 10m, initialStock: 10);
+        db.Products.Add(product);
+
+        db.Sales.AddRange(
+            new Sale([new SaleItem(product.Id, 1, 10m)], createdAt: Utc(2023, 1, 15, 10, 0)),
+            new Sale([new SaleItem(product.Id, 1, 20m)], createdAt: Utc(2023, 2, 10, 10, 0)),
+            new Sale([new SaleItem(product.Id, 1, 30m)], createdAt: Utc(2024, 1, 12, 10, 0)));
+        await db.SaveChangesAsync();
+
+        var service = new DashboardService(db, new StubForecastService());
+
+        var result = await service.GetPerformanceSeriesAsync(groupBy: "month");
+
+        Assert.AreEqual("month", result.GroupBy);
+        CollectionAssert.AreEqual(
+            new[] { "2023-01", "2023-02", "2023-03" },
+            result.CurrentSeries.Points.Take(3).Select(point => point.AxisLabel).ToArray());
+        Assert.AreEqual("2024-01", result.CurrentSeries.Points.Last().AxisLabel);
+    }
+
+    [TestMethod]
     public async Task GetSalesByPeriodAsync_ShouldGroupRevenueAndSalesCountByDay()
     {
         await using var db = CreateDbContext();
