@@ -290,6 +290,43 @@ function ProgressRow({ label, value, width, toneClass, ariaLabel }: ProgressRowP
   );
 }
 
+function PromotionRecommendationCard({ recommendation }: { recommendation: PromotionRecommendationDto }) {
+  return (
+    <article className="min-w-[280px] snap-start rounded-[24px] border border-black/10 bg-white/82 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-base font-semibold text-neutral-950">{recommendation.customerName}</div>
+          <div className="mt-1 truncate text-xs text-neutral-600">{recommendation.reason}</div>
+        </div>
+        <span className="inline-flex shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+          {formatScore(recommendation.score)}
+        </span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <div className="rounded-[16px] border border-black/8 bg-white/80 px-3 py-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Last purchase</div>
+          <div className="mt-1 font-medium text-neutral-900">{recommendation.daysSinceLastPurchase}d ago</div>
+        </div>
+        <div className="rounded-[16px] border border-black/8 bg-white/80 px-3 py-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Frequency</div>
+          <div className="mt-1 font-medium text-neutral-900">{recommendation.purchasesLast90Days} in 90d</div>
+        </div>
+        <div className="rounded-[16px] border border-black/8 bg-white/80 px-3 py-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Avg ticket</div>
+          <div className="mt-1 font-medium text-neutral-900">{formatMoney(recommendation.avgTicket)}</div>
+        </div>
+        <div className="rounded-[16px] border border-black/8 bg-white/80 px-3 py-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Debt ratio</div>
+          <div className={`mt-1 font-medium ${recommendation.debtRatioPct >= 40 ? "text-red-700" : "text-neutral-900"}`}>
+            {formatPercent(recommendation.debtRatioPct)}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function DashboardView({
   mode,
   year,
@@ -520,43 +557,11 @@ export default function DashboardView({
           {promotionRecommendations.length === 0 ? (
             <EmptyState label="No promotion recommendations yet." />
           ) : (
-            promotionRecommendations.map((recommendation) => (
-              <div
-                key={recommendation.customerId}
-                className="grid gap-3 rounded-[24px] border border-black/8 bg-white/70 px-4 py-4 shadow-sm lg:grid-cols-[minmax(0,1.2fr)_auto]"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="truncate text-base font-semibold text-neutral-950">{recommendation.customerName}</div>
-                    <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
-                      {formatScore(recommendation.score)}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-neutral-700">{recommendation.reason}</p>
-                </div>
-
-                <div className="grid gap-2 text-sm text-neutral-700 sm:grid-cols-2 lg:min-w-[18rem] lg:grid-cols-1">
-                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Last purchase</div>
-                    <div className="mt-1 font-medium text-neutral-900">{recommendation.daysSinceLastPurchase} day(s) ago</div>
-                  </div>
-                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Recent frequency</div>
-                    <div className="mt-1 font-medium text-neutral-900">{recommendation.purchasesLast90Days} purchase(s) in 90d</div>
-                  </div>
-                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Average ticket</div>
-                    <div className="mt-1 font-medium text-neutral-900">{formatMoney(recommendation.avgTicket)}</div>
-                  </div>
-                  <div className="rounded-[18px] border border-black/8 bg-white/75 px-3 py-2">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Debt ratio</div>
-                    <div className={`mt-1 font-medium ${recommendation.debtRatioPct >= 40 ? "text-red-700" : "text-neutral-900"}`}>
-                      {formatPercent(recommendation.debtRatioPct)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
+            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
+              {promotionRecommendations.map((recommendation) => (
+                <PromotionRecommendationCard key={recommendation.customerId} recommendation={recommendation} />
+              ))}
+            </div>
           )}
         </div>
       </SectionCard>
