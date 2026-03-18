@@ -57,6 +57,9 @@ export type PromotionRecommendationDto = {
   customerName: string;
   score: number;
   reason: string;
+  recommendedProductId?: string | null;
+  recommendedProductName?: string | null;
+  productRecommendationReason?: string | null;
   daysSinceLastPurchase: number;
   purchasesLast90Days: number;
   avgTicket: number;

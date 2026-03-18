@@ -303,6 +303,16 @@ function PromotionRecommendationCard({ recommendation }: { recommendation: Promo
         </span>
       </div>
 
+      <div className="mt-4 rounded-[16px] border border-black/8 bg-white/80 px-3 py-2.5">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Recommended product</div>
+        <div className="mt-1 truncate font-medium text-neutral-950">
+          {recommendation.recommendedProductName?.trim() ? recommendation.recommendedProductName : "No product suggestion"}
+        </div>
+        {recommendation.productRecommendationReason ? (
+          <div className="mt-1 text-xs text-neutral-600">{recommendation.productRecommendationReason}</div>
+        ) : null}
+      </div>
+
       <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-[16px] border border-black/8 bg-white/80 px-3 py-2">
           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Last purchase</div>

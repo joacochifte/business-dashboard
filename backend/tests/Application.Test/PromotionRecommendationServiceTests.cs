@@ -1,6 +1,7 @@
 using BusinessDashboard.Application.Promotions;
 using BusinessDashboard.Application.Promotions.Scoring;
 using BusinessDashboard.Domain.Customers;
+using BusinessDashboard.Domain.Products;
 using BusinessDashboard.Domain.Sales;
 using BusinessDashboard.Infrastructure.Repositories.Interfaces;
 using Moq;
@@ -84,22 +85,27 @@ public class PromotionRecommendationServiceTests
         };
 
         var now = new DateTimeOffset(2026, 3, 20, 12, 0, 0, TimeSpan.Zero);
+        var proteinBar = new Product("Protein Bar", 20m, 25);
+        var energyDrink = new Product("Energy Drink", 12m, 40);
         var sales = new List<Sale>
         {
-            CreateSale(customers[0], 120m, false, now.AddDays(-5).UtcDateTime),
-            CreateSale(customers[0], 110m, false, now.AddDays(-20).UtcDateTime),
-            CreateSale(customers[0], 90m, false, now.AddDays(-40).UtcDateTime),
-            CreateSale(customers[1], 150m, true, now.AddDays(-6).UtcDateTime),
-            CreateSale(customers[1], 80m, false, now.AddDays(-12).UtcDateTime),
+            CreateSale(customers[0], false, now.AddDays(-5).UtcDateTime, (proteinBar.Id, 2, 60m)),
+            CreateSale(customers[0], false, now.AddDays(-20).UtcDateTime, (proteinBar.Id, 1, 110m)),
+            CreateSale(customers[0], false, now.AddDays(-40).UtcDateTime, (energyDrink.Id, 1, 90m)),
+            CreateSale(customers[1], true, now.AddDays(-6).UtcDateTime, (energyDrink.Id, 1, 150m)),
+            CreateSale(customers[1], false, now.AddDays(-12).UtcDateTime, (energyDrink.Id, 1, 80m)),
         };
 
         var customerRepo = new Mock<ICustomerRepository>(MockBehavior.Strict);
+        var productRepo = new Mock<IProductRepository>(MockBehavior.Strict);
         var saleRepo = new Mock<ISaleRepository>(MockBehavior.Strict);
         customerRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(customers);
+        productRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { proteinBar, energyDrink });
         saleRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(sales);
 
         var service = new PromotionRecommendationService(
             customerRepo.Object,
+            productRepo.Object,
             saleRepo.Object,
             new RfmPromotionScoringStrategy(),
             new FakeTimeProvider(now));
@@ -112,8 +118,11 @@ public class PromotionRecommendationServiceTests
         Assert.IsTrue(result[0].Score > result[1].Score);
         Assert.AreEqual(3, result[0].PurchasesLast90Days);
         Assert.AreEqual(0m, result[0].DebtRatioPct);
+        Assert.AreEqual(proteinBar.Id, result[0].RecommendedProductId);
+        Assert.AreEqual("Protein Bar", result[0].RecommendedProductName);
         Assert.AreEqual(2, result[1].PurchasesLast90Days);
         Assert.IsTrue(result[1].DebtRatioPct > 40m);
+        Assert.AreEqual(energyDrink.Id, result[1].RecommendedProductId);
     }
 
     [TestMethod]
@@ -127,20 +136,26 @@ public class PromotionRecommendationServiceTests
         };
 
         var now = new DateTimeOffset(2026, 3, 20, 12, 0, 0, TimeSpan.Zero);
+        var productA = new Product("A", 10m, 10);
+        var productB = new Product("B", 10m, 10);
+        var productC = new Product("C", 10m, 10);
         var sales = new List<Sale>
         {
-            CreateSale(customers[0], 100m, false, now.AddDays(-3).UtcDateTime),
-            CreateSale(customers[1], 90m, false, now.AddDays(-8).UtcDateTime),
-            CreateSale(customers[2], 80m, false, now.AddDays(-30).UtcDateTime),
+            CreateSale(customers[0], false, now.AddDays(-3).UtcDateTime, (productA.Id, 1, 100m)),
+            CreateSale(customers[1], false, now.AddDays(-8).UtcDateTime, (productB.Id, 1, 90m)),
+            CreateSale(customers[2], false, now.AddDays(-30).UtcDateTime, (productC.Id, 1, 80m)),
         };
 
         var customerRepo = new Mock<ICustomerRepository>(MockBehavior.Strict);
+        var productRepo = new Mock<IProductRepository>(MockBehavior.Strict);
         var saleRepo = new Mock<ISaleRepository>(MockBehavior.Strict);
         customerRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(customers);
+        productRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { productA, productB, productC });
         saleRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(sales);
 
         var service = new PromotionRecommendationService(
             customerRepo.Object,
+            productRepo.Object,
             saleRepo.Object,
             new RfmPromotionScoringStrategy(),
             new FakeTimeProvider(now));
@@ -154,12 +169,15 @@ public class PromotionRecommendationServiceTests
     public async Task GetRecommendationsAsync_WithNoEligibleCustomers_ShouldReturnEmpty()
     {
         var customerRepo = new Mock<ICustomerRepository>(MockBehavior.Strict);
+        var productRepo = new Mock<IProductRepository>(MockBehavior.Strict);
         var saleRepo = new Mock<ISaleRepository>(MockBehavior.Strict);
         customerRepo.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new[] { new Customer("Alice") });
+        productRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Product>());
         saleRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(Array.Empty<Sale>());
 
         var service = new PromotionRecommendationService(
             customerRepo.Object,
+            productRepo.Object,
             saleRepo.Object,
             new RfmPromotionScoringStrategy(),
             new FakeTimeProvider(new DateTimeOffset(2026, 3, 20, 12, 0, 0, TimeSpan.Zero)));
@@ -169,10 +187,14 @@ public class PromotionRecommendationServiceTests
         Assert.AreEqual(0, result.Count);
     }
 
-    private static Sale CreateSale(Customer customer, decimal total, bool isDebt, DateTime createdAt)
+    private static Sale CreateSale(
+        Customer customer,
+        bool isDebt,
+        DateTime createdAt,
+        params (Guid ProductId, int Quantity, decimal UnitPrice)[] items)
     {
         var sale = new Sale(
-            new[] { new SaleItem(Guid.NewGuid(), 1, total) },
+            items.Select(item => new SaleItem(item.ProductId, item.Quantity, item.UnitPrice)),
             customerId: customer.Id,
             isDebt: isDebt,
             createdAt: createdAt);
