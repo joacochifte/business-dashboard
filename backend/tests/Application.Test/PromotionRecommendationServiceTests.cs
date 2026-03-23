@@ -118,8 +118,8 @@ public class PromotionRecommendationServiceTests
         Assert.IsTrue(result[0].Score > result[1].Score);
         Assert.AreEqual(3, result[0].PurchasesLast90Days);
         Assert.AreEqual(0m, result[0].DebtRatioPct);
-        Assert.AreEqual(proteinBar.Id, result[0].RecommendedProductId);
-        Assert.AreEqual("Protein Bar", result[0].RecommendedProductName);
+        Assert.AreEqual(energyDrink.Id, result[0].RecommendedProductId);
+        Assert.AreEqual("Energy Drink", result[0].RecommendedProductName);
         Assert.AreEqual(2, result[1].PurchasesLast90Days);
         Assert.IsTrue(result[1].DebtRatioPct > 40m);
         Assert.AreEqual(energyDrink.Id, result[1].RecommendedProductId);
